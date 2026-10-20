@@ -1,6 +1,6 @@
 # final_flutter_project
 
-A new Flutter project.
+A Shoes Store 304 499.
 
 ## Getting Started
 
