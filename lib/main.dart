@@ -1,3 +1,821 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
+
+// ============================================================
+//  CONFIG  —  แก้ตรงนี้ให้ตรงกับ API ของคุณ
+// ============================================================
+// Android emulator ใช้ 10.0.2.2 แทน localhost
+// iOS simulator / เว็บ ใช้ http://localhost:xxxx
+// เครื่องจริง ใช้ IP ของคอมในวง Wi-Fi เดียวกัน เช่น http://192.168.1.20:8000
+// (FastAPI ปกติพอร์ต 8000, Flask ปกติพอร์ต 5000)
+// const String kApiBaseUrl = 'http://10.0.2.2:8000';
+
+const String kApiBaseUrl = 'http://127.0.0.1:8000';
+const String kProductsPath = '/products';
+// endpoint ดึงรองเท้าทั้งหมด -> GET {kApiBaseUrl}/products
+
+
+// ============================================================
+//  COLORS
+// ============================================================
+class AppColors {
+  static const bg = Color(0xFFFAF6F0); // พื้นหลังครีม
+  static const surface = Color(0xFFFFFFFF); // การ์ดขาว
+  static const imageBg = Color(0xFFF1E9DD); // พื้นหลังรูปรองเท้า
+  static const ink = Color(0xFF1F1A17); // ตัวอักษรหลัก
+  static const inkSoft = Color(0xFF6B625B); // ตัวอักษรรอง
+  static const line = Color(0xFFE4DACB); // เส้นขอบ
+  static const accent = Color(0xFFD94F2B); // ส้มแดง (สีเด่น)
+  static const accentSoft = Color(0xFFFBE3DA); // ส้มอ่อน
+  static const gold = Color(0xFFB8860B); // ทอง ใช้กับป้าย Rare
+  static const placeholder = Color(0xFFA89C8F); // สี placeholder ปกติ
+  static const placeholderActive = Color(0xFFD94F2B); // สี placeholder ตอนกำลังจะค้นหา
+}
+
+// ============================================================
+//  API
+// ============================================================
+class Shoe {
+  final String name;
+  final String? price;
+  const Shoe(this.name, [this.price]);
+}
+
+class ShoeApi {
+  /// ดึงสินค้าทั้งหมดจากตาราง products (GET /products)
+  /// รองรับ response:  [ {...}, {...} ]  หรือ  {"data": [...]} / {"products": [...]}
+  /// ชื่อรองเท้าอ่านจาก key: name / product_name / shoe_name / title
+  /// ถ้า column ในตารางของคุณชื่ออื่น ให้เพิ่มชื่อนั้นใน list _nameKeys
+  static const _nameKeys = ['name', 'product_name', 'shoe_name', 'title'];
+
+  static Future<List<Shoe>> fetchAll() async {
+    final uri = Uri.parse('$kApiBaseUrl$kProductsPath');
+    final res = await http.get(uri).timeout(const Duration(seconds: 10));
+    if (res.statusCode != 200) {
+      throw Exception('Server error ${res.statusCode}');
+    }
+
+    dynamic body = jsonDecode(utf8.decode(res.bodyBytes));
+    if (body is Map) {
+      body = body['data'] ?? body['products'] ?? body['results'] ?? [];
+    }
+    if (body is! List) return [];
+
+    final shoes = <Shoe>[];
+    for (final item in body) {
+      if (item is String) {
+        shoes.add(Shoe(item));
+      } else if (item is Map) {
+        String? name;
+        for (final k in _nameKeys) {
+          if (item[k] != null) {
+            name = item[k].toString();
+            break;
+          }
+        }
+        if (name == null) continue;
+        final p = item['price'];
+        shoes.add(Shoe(name, p == null ? null : '฿$p'));
+      }
+    }
+    return shoes;
+  }
+}
+
+// ============================================================
+//  APP
+// ============================================================
+void main() => runApp(const RarePairApp());
+
+class RarePairApp extends StatelessWidget {
+  const RarePairApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Rare Pair',
+      theme: ThemeData(
+        useMaterial3: true,
+        scaffoldBackgroundColor: AppColors.bg,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.accent,
+          surface: AppColors.bg,
+        ),
+      ),
+      home: const HomePage(),
+    );
+  }
+}
+
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final _controller = TextEditingController();
+  final _focus = FocusNode();
+
+  List<Shoe> _all = []; // รองเท้าทั้งหมดจาก /products
+  List<Shoe> _results = []; // ผลหลังกรองด้วยคำค้น
+  bool _loading = false;
+  String? _error;
+  int _selectedChip = 0;
+  int _navIndex = 0;
+
+  static const _chips = ['ทั้งหมด', 'Vintage', 'Limited Edition', 'Collaboration'];
+
+  // อยู่ในโหมดค้นหา = แตะช่องค้นหา หรือมีข้อความอยู่
+  bool get _searching => _controller.text.trim().isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    _focus.addListener(() => setState(() {}));
+    _loadAll(); // โหลดรองเท้าทั้งหมดตั้งแต่เปิดหน้า
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  /// เรียก GET /products ครั้งเดียว เก็บไว้ใน _all
+  Future<void> _loadAll() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final data = await ShoeApi.fetchAll();
+      if (!mounted) return;
+      setState(() {
+        _all = data;
+        _loading = false;
+      });
+      _filter(_controller.text);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้\n$e';
+        _loading = false;
+      });
+    }
+  }
+
+  /// กรองรายการที่โหลดมาแล้วตามคำค้น (ไม่ต้องยิง API ซ้ำ)
+  void _filter(String text) {
+    final q = text.trim().toLowerCase();
+
+    setState(() {
+      if (q.isEmpty) {
+        _results = [];
+      } else {
+        _results = _all
+            .where((shoe) =>
+            shoe.name.toLowerCase().contains(q))
+            .take(8)
+            .toList();
+      }
+    });
+  }
+
+  void _clear() {
+    _controller.clear();
+    _filter('');
+  }
+
+  void _closeSearch() {
+    _controller.clear();
+    _filter('');
+    _focus.unfocus();
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            _header(),
+            const Divider(height: 1, color: AppColors.line),
+            Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () {
+                  if (_controller.text.isEmpty) _focus.unfocus();
+                },
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                  children: [
+                    _searchBar(),
+                    const SizedBox(height: 12),
+                    if (_searching)
+                      _resultsPanel()
+                    else ...[
+                      _chipRow(),
+                      const SizedBox(height: 20),
+                      _heroCard(),
+                      const SizedBox(height: 28),
+                      _sectionTitle('คู่หายากที่น่าจับตา', 'ดูทั้งหมด'),
+                      const SizedBox(height: 12),
+                      _shoeGrid(),
+                      const SizedBox(height: 28),
+                      _sectionTitle('รองเท้าที่มีเรื่องราว', 'อ่านทั้งหมด'),
+                      const SizedBox(height: 12),
+                      _storyCard(),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            _bottomNav(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ---------------- Header ----------------
+  Widget _header() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'RARE PAIR',
+                  style: TextStyle(
+                    fontSize: 11,
+                    letterSpacing: 1.4,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.accent,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'ค้นพบคู่ที่มีเรื่องราว',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.notifications_none_rounded,
+              size: 26, color: AppColors.ink),
+        ],
+      ),
+    );
+  }
+
+  //  Search bar (เชื่อม API)
+  Widget _searchBar() {
+    final focused = _focus.hasFocus;
+    return Row(
+      children: [
+        Expanded(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            height: 50,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: focused ? AppColors.accent : AppColors.line,
+                width: focused ? 1.6 : 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.search,
+                    size: 24,
+                    color: focused ? AppColors.accent : AppColors.ink),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    focusNode: _focus,
+                    onChanged: _filter,
+                    textInputAction: TextInputAction.search,
+                    onSubmitted: _filter,
+                    cursorColor: AppColors.accent,
+                    style: const TextStyle(fontSize: 15, color: AppColors.ink),
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      isDense: true,
+                      hintText: 'ค้นหารุ่น แบรนด์ หรือเรื่องราว',
+                      // สี placeholder เปลี่ยนตอนกำลังจะค้นหา
+                      hintStyle: TextStyle(
+                        fontSize: 15,
+                        color: focused
+                            ? AppColors.placeholderActive.withOpacity(0.6)
+                            : AppColors.placeholder,
+                      ),
+                    ),
+                  ),
+                ),
+                if (_controller.text.isNotEmpty)
+                  GestureDetector(
+                    onTap: _clear,
+                    child: const Icon(Icons.close_rounded,
+                        size: 20, color: AppColors.inkSoft),
+                  )
+                else
+                  const Icon(Icons.tune_rounded,
+                      size: 22, color: AppColors.inkSoft),
+              ],
+            ),
+          ),
+        ),
+        if (_searching) ...[
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: _closeSearch,
+            child: const Text(
+              'ยกเลิก',
+              style: TextStyle(
+                  color: AppColors.accent, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // ---------------- ผลการค้นหา ----------------
+  Widget _resultsPanel() {
+    if (_loading && _results.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 48),
+        child: Center(
+          child: CircularProgressIndicator(
+              color: AppColors.accent, strokeWidth: 2.5),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.accentSoft,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          children: [
+            Text(_error!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.ink, fontSize: 13)),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: _loadAll,
+              child: const Text('ลองอีกครั้ง',
+                  style: TextStyle(color: AppColors.accent)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_results.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 48),
+        child: Center(
+          child: Text('ไม่พบรองเท้าที่ค้นหา',
+              style: TextStyle(color: AppColors.inkSoft)),
+        ),
+      );
+    }
+
+    final q = _controller.text.trim();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            'พบ ${_results.length} รายการ',
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.inkSoft,
+            ),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.line),
+          ),
+          child: ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _results.length,
+            separatorBuilder: (_, __) =>
+            const Divider(height: 1, color: AppColors.line),
+            itemBuilder: (_, i) => _resultTile(_results[i], q),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _resultTile(Shoe shoe, String query) {
+    return InkWell(
+      onTap: () {
+        // TODO: เปิดหน้ารายละเอียดรองเท้า
+        _focus.unfocus();
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.imageBg,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.directions_run_rounded,
+                  color: AppColors.inkSoft, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: _highlight(shoe.name, query)),
+            if (shoe.price != null) ...[
+              Text(shoe.price!,
+                  style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.accent)),
+              const SizedBox(width: 8),
+            ],
+            const Icon(Icons.north_west_rounded,
+                size: 16, color: AppColors.placeholder),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// ไฮไลต์ตัวอักษรที่ตรงกับคำค้นเป็นสีส้ม
+  Widget _highlight(String text, String query) {
+    const base = TextStyle(
+        fontSize: 15, fontWeight: FontWeight.w500, color: AppColors.ink);
+    if (query.isEmpty) return Text(text, style: base);
+    final i = text.toLowerCase().indexOf(query.toLowerCase());
+    if (i < 0) return Text(text, style: base);
+    return Text.rich(TextSpan(style: base, children: [
+      TextSpan(text: text.substring(0, i)),
+      TextSpan(
+        text: text.substring(i, i + query.length),
+        style: const TextStyle(
+            color: AppColors.accent, fontWeight: FontWeight.w700),
+      ),
+      TextSpan(text: text.substring(i + query.length)),
+    ]));
+  }
+
+  // ---------------- Chips ----------------
+  Widget _chipRow() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: List.generate(_chips.length, (i) {
+        final sel = i == _selectedChip;
+        return GestureDetector(
+          onTap: () => setState(() => _selectedChip = i),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: sel ? AppColors.ink : AppColors.surface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: sel ? AppColors.ink : AppColors.line),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (sel) ...[
+                  const Icon(Icons.check, size: 16, color: Colors.white),
+                  const SizedBox(width: 4),
+                ],
+                Text(
+                  _chips[i],
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: sel ? FontWeight.w600 : FontWeight.w400,
+                    color: sel ? Colors.white : AppColors.ink,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  // ---------------- Hero card (static ไว้ก่อน) ----------------
+  Widget _heroCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: const [
+              Text('RARE PICK ประจำสัปดาห์',
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.gold)),
+              Text('18–24 ต.ค. 2026',
+                  style: TextStyle(fontSize: 11, color: AppColors.inkSoft)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _imagePlaceholder(height: 170, label: 'ภาพไฮไลต์ · มุมด้านข้าง'),
+          const SizedBox(height: 16),
+          const Text(
+            'Air Jordan 1 High ‘Lost & Found’',
+            style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: AppColors.ink),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'ตำนาน Chicago ปี 1985 ที่กลับมาอีกครั้ง ในกล่องเก่า พร้อมเรื่องราวบทใหม่',
+            style: TextStyle(fontSize: 14, height: 1.4, color: AppColors.inkSoft),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: const [
+              Text('฿14,900',
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.accent)),
+              Row(
+                children: [
+                  Text('ดูรองเท้าและเรื่องราว',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.ink)),
+                  SizedBox(width: 6),
+                  Icon(Icons.arrow_forward, size: 18, color: AppColors.ink),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _imagePlaceholder({required double height, required String label}) {
+    return Container(
+      height: height,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.imageBg,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.directions_run_rounded,
+              size: height * 0.35, color: AppColors.placeholder),
+          const SizedBox(height: 6),
+          Text(label,
+              style:
+              const TextStyle(fontSize: 11, color: AppColors.inkSoft)),
+        ],
+      ),
+    );
+  }
+
+  // ---------------- Section title ----------------
+  Widget _sectionTitle(String title, String action) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(title,
+            style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.ink)),
+        Text(action,
+            style: const TextStyle(fontSize: 12, color: AppColors.accent)),
+      ],
+    );
+  }
+
+  // ---------------- Grid (static ไว้ก่อน) ----------------
+  Widget _shoeGrid() {
+    const items = [
+      ['LIMITED EDITION · เหลือ 3 คู่', 'Air Jordan 1 High OG', 'Lost & Found · 2022', '฿14,900'],
+      ['VINTAGE INSPIRED · เหลือ 4 คู่', 'Dunk Low SP', 'Syracuse · 2020', '฿9,900'],
+      ['COLLABORATION · เหลือ 1 คู่', 'Air Max 1/97', 'Sean Wotherspoon · 2018', '฿32,900'],
+      ['COLLABORATION · เหลือ 2 คู่', 'New Balance 550', 'Aimé Leon Dore · 2021', '฿12,900'],
+    ];
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: items.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 0.78,
+      ),
+      itemBuilder: (_, i) {
+        final it = items[i];
+        return Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.line),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  color: AppColors.imageBg,
+                  child: const Icon(Icons.directions_run_rounded,
+                      size: 46, color: AppColors.placeholder),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(it[0],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 9.5, color: AppColors.gold)),
+                    const SizedBox(height: 4),
+                    Text(it[1],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.ink)),
+                    const SizedBox(height: 2),
+                    Text(it[2],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.inkSoft)),
+                    const SizedBox(height: 6),
+                    Text(it[3],
+                        style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.accent)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ---------------- Story card (static ไว้ก่อน) ----------------
+  Widget _storyCard() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 100,
+            height: 110,
+            decoration: BoxDecoration(
+              color: AppColors.imageBg,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.directions_run_rounded,
+                size: 40, color: AppColors.placeholder),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('HERITAGE / อ่าน 3 นาที',
+                    style: TextStyle(fontSize: 11, color: AppColors.gold)),
+                SizedBox(height: 4),
+                Text('จากสนามบาส สู่ต้นตำนาน Air Jordan 1',
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.ink)),
+                SizedBox(height: 4),
+                Text('ทำไมสี Chicago ถึงเป็นจุดเริ่มต้นของนักสะสม',
+                    style:
+                    TextStyle(fontSize: 12, color: AppColors.inkSoft)),
+                SizedBox(height: 8),
+                Text('อ่านเรื่องราว →',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.accent)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------- Bottom nav ----------------
+  Widget _bottomNav() {
+    const tabs = [
+      [Icons.home_outlined, Icons.home_rounded, 'หน้าแรก'],
+      [Icons.shopping_bag_outlined, Icons.shopping_bag, 'ตะกร้า'],
+      [Icons.collections_bookmark_outlined, Icons.collections_bookmark, 'คอลเลกชัน'],
+      [Icons.person_outline, Icons.person, 'โปรไฟล์'],
+    ];
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(top: BorderSide(color: AppColors.line)),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: List.generate(tabs.length, (i) {
+          final sel = i == _navIndex;
+          return GestureDetector(
+            onTap: () => setState(() => _navIndex = i),
+            behavior: HitTestBehavior.opaque,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 18, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: sel ? AppColors.accentSoft : Colors.transparent,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Icon(
+                    (sel ? tabs[i][1] : tabs[i][0]) as IconData,
+                    size: 24,
+                    color: sel ? AppColors.accent : AppColors.inkSoft,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  tabs[i][2] as String,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: sel ? FontWeight.w700 : FontWeight.w400,
+                    color: sel ? AppColors.accent : AppColors.inkSoft,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ),
+    );
+  }
+}
