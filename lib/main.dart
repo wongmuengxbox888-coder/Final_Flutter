@@ -1,53 +1,39 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'pages/login.dart';
+import 'pages/profile.dart';
 
-// ============================================================
-//  CONFIG  —  แก้ตรงนี้ให้ตรงกับ API ของคุณ
-// ============================================================
-// Android emulator ใช้ 10.0.2.2 แทน localhost
-// iOS simulator / เว็บ ใช้ http://localhost:xxxx
-// เครื่องจริง ใช้ IP ของคอมในวง Wi-Fi เดียวกัน เช่น http://192.168.1.20:8000
-// (FastAPI ปกติพอร์ต 8000, Flask ปกติพอร์ต 5000)
-// const String kApiBaseUrl = 'http://10.0.2.2:8000';
 
 const String kApiBaseUrl = 'http://127.0.0.1:8000';
 const String kProductsPath = '/products';
-// endpoint ดึงรองเท้าทั้งหมด -> GET {kApiBaseUrl}/products
 
 
-// ============================================================
-//  COLORS
-// ============================================================
+
+// color mom
 class AppColors {
-  static const bg = Color(0xFFFAF6F0); // พื้นหลังครีม
-  static const surface = Color(0xFFFFFFFF); // การ์ดขาว
-  static const imageBg = Color(0xFFF1E9DD); // พื้นหลังรูปรองเท้า
-  static const ink = Color(0xFF1F1A17); // ตัวอักษรหลัก
-  static const inkSoft = Color(0xFF6B625B); // ตัวอักษรรอง
-  static const line = Color(0xFFE4DACB); // เส้นขอบ
-  static const accent = Color(0xFFD94F2B); // ส้มแดง (สีเด่น)
-  static const accentSoft = Color(0xFFFBE3DA); // ส้มอ่อน
-  static const gold = Color(0xFFB8860B); // ทอง ใช้กับป้าย Rare
-  static const placeholder = Color(0xFFA89C8F); // สี placeholder ปกติ
-  static const placeholderActive = Color(0xFFD94F2B); // สี placeholder ตอนกำลังจะค้นหา
+  static const bg = Color(0xFF0B0B0B);
+  static const surface = Color(0xFF1D1D1D);
+  static const imageBg = Color(0xFFE7E7E7);
+  static const ink = Color(0xFFFFFFFF);
+  static const inkSoft = Color(0xFFAAAAAA);
+  static const line = Color(0xFF383838);
+  static const accent = Color(0xFFFF5500);
+  static const accentSoft = Color(0xFF302016);
+  static const gold = Color(0xFFAAAAAA);
+  static const placeholder = Color(0xFF888888);
+  static const placeholderActive = Color(0xFFFF5500);
 }
 
-// ============================================================
-//  API
-// ============================================================
+///api
 class Shoe {
   final String name;
   final String? price;
-  const Shoe(this.name, [this.price]);
+  final String? imageUrl;
+  const Shoe(this.name, [this.price, this.imageUrl]);
 }
 
 class ShoeApi {
-  /// ดึงสินค้าทั้งหมดจากตาราง products (GET /products)
-  /// รองรับ response:  [ {...}, {...} ]  หรือ  {"data": [...]} / {"products": [...]}
-  /// ชื่อรองเท้าอ่านจาก key: name / product_name / shoe_name / title
-  /// ถ้า column ในตารางของคุณชื่ออื่น ให้เพิ่มชื่อนั้นใน list _nameKeys
   static const _nameKeys = ['name', 'product_name', 'shoe_name', 'title'];
 
   static Future<List<Shoe>> fetchAll() async {
@@ -75,18 +61,23 @@ class ShoeApi {
             break;
           }
         }
+
+        // อ่านค่าจาก main.py (FastAPI) ตามชื่อ column ในตาราง products
         if (name == null) continue;
         final p = item['price'];
-        shoes.add(Shoe(name, p == null ? null : '฿$p'));
+        final raw = item['image_url'];
+        final img = (raw != null && raw.toString().isNotEmpty)
+            ? raw.toString()
+            : null;
+
+        shoes.add(Shoe(name, p == null ? null : '฿$p', img));
       }
     }
     return shoes;
   }
 }
 
-// ============================================================
-//  APP
-// ============================================================
+///app
 void main() => runApp(const RarePairApp());
 
 class RarePairApp extends StatelessWidget {
@@ -96,7 +87,7 @@ class RarePairApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Rare Pair',
+      title: 'brabrabra',
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: AppColors.bg,
@@ -111,7 +102,12 @@ class RarePairApp extends StatelessWidget {
 }
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final int? userId;
+
+  const HomePage({
+    super.key,
+    this.userId,
+  });
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -130,7 +126,7 @@ class _HomePageState extends State<HomePage> {
 
   static const _chips = ['ทั้งหมด', 'Vintage', 'Limited Edition', 'Collaboration'];
 
-  // อยู่ในโหมดค้นหา = แตะช่องค้นหา หรือมีข้อความอยู่
+  // อยู่ในโหมดค้นหา = มีข้อความอยู่ในช่องค้นหา
   bool get _searching => _controller.text.trim().isNotEmpty;
 
   @override
@@ -170,7 +166,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  /// กรองรายการที่โหลดมาแล้วตามคำค้น (ไม่ต้องยิง API ซ้ำ)
+  /// กรองรายการที่โหลดมาแล้วตามคำค้น
   void _filter(String text) {
     final q = text.trim().toLowerCase();
 
@@ -179,8 +175,7 @@ class _HomePageState extends State<HomePage> {
         _results = [];
       } else {
         _results = _all
-            .where((shoe) =>
-            shoe.name.toLowerCase().contains(q))
+            .where((shoe) => shoe.name.toLowerCase().contains(q))
             .take(8)
             .toList();
       }
@@ -244,7 +239,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ---------------- Header ----------------
+  // head
   Widget _header() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
@@ -254,15 +249,6 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
-                Text(
-                  'RARE PAIR',
-                  style: TextStyle(
-                    fontSize: 11,
-                    letterSpacing: 1.4,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.accent,
-                  ),
-                ),
                 SizedBox(height: 2),
                 Text(
                   'ค้นพบคู่ที่มีเรื่องราว',
@@ -273,6 +259,23 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ],
+            ),
+          ),
+          TextButton(
+             onPressed: () {
+               Navigator.push(
+                context,
+                 MaterialPageRoute(
+                 builder: (context) => const LoginPage(),
+                ),
+            );
+         },
+              child: const Text(
+                  'Login',
+                style: TextStyle(
+                color: AppColors.ink,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           const Icon(Icons.notifications_none_rounded,
@@ -357,7 +360,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ---------------- ผลการค้นหา ----------------
+  // ผลค้นหา
   Widget _resultsPanel() {
     if (_loading && _results.isEmpty) {
       return const Padding(
@@ -445,15 +448,24 @@ class _HomePageState extends State<HomePage> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                width: 44,
+                height: 44,
                 color: AppColors.imageBg,
-                borderRadius: BorderRadius.circular(8),
+                child: shoe.imageUrl == null
+                    ? const Icon(Icons.directions_run_rounded,
+                    color: AppColors.inkSoft, size: 22)
+                    : Image.network(
+                  shoe.imageUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const Icon(
+                      Icons.directions_run_rounded,
+                      color: AppColors.inkSoft,
+                      size: 22),
+                ),
               ),
-              child: const Icon(Icons.directions_run_rounded,
-                  color: AppColors.inkSoft, size: 22),
             ),
             const SizedBox(width: 12),
             Expanded(child: _highlight(shoe.name, query)),
@@ -491,7 +503,7 @@ class _HomePageState extends State<HomePage> {
     ]));
   }
 
-  // ---------------- Chips ----------------
+  // บา แรก
   Widget _chipRow() {
     return Wrap(
       spacing: 8,
@@ -503,7 +515,7 @@ class _HomePageState extends State<HomePage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: sel ? AppColors.ink : AppColors.surface,
+              color: sel ? Colors.black : AppColors.inkSoft,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: sel ? AppColors.ink : AppColors.line),
             ),
@@ -530,8 +542,31 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ---------------- Hero card (static ไว้ก่อน) ----------------
+  // รูปรองเท้า (ใช้ซ้ำทุกการ์ด) ถ้าไม่มีลิงก์/โหลดไม่ได้ จะแสดงไอคอนแทน
+  Widget _shoeImage(String? url,
+      {double? height, double iconSize = 40, BoxFit fit = BoxFit.cover}) {
+    final fallback = Center(
+      child: Icon(Icons.directions_run_rounded,
+          size: iconSize, color: AppColors.placeholder),
+    );
+    return SizedBox(
+      height: height,
+      width: double.infinity,
+      child: url == null
+          ? fallback
+          : Image.network(
+        url,
+        fit: fit,
+        errorBuilder: (_, __, ___) => fallback,
+        loadingBuilder: (_, child, progress) =>
+        progress == null ? child : fallback,
+      ),
+    );
+  }
+
+  // การ์ด แรกสุด (ใช้รองเท้าคู่แรกจากฐานข้อมูล)
   Widget _heroCard() {
+    final shoe = _all.isNotEmpty ? _all.first : null;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -555,30 +590,34 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
           const SizedBox(height: 12),
-          _imagePlaceholder(height: 170, label: 'ภาพไฮไลต์ · มุมด้านข้าง'),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              color: AppColors.imageBg,
+              child: _shoeImage(shoe?.imageUrl,
+                  height: 170, iconSize: 60, fit: BoxFit.contain),
+            ),
+          ),
           const SizedBox(height: 16),
-          const Text(
-            'Air Jordan 1 High ‘Lost & Found’',
-            style: TextStyle(
+          Text(
+            shoe?.name ?? 'กำลังโหลด...',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
                 color: AppColors.ink),
           ),
-          const SizedBox(height: 6),
-          const Text(
-            'ตำนาน Chicago ปี 1985 ที่กลับมาอีกครั้ง ในกล่องเก่า พร้อมเรื่องราวบทใหม่',
-            style: TextStyle(fontSize: 14, height: 1.4, color: AppColors.inkSoft),
-          ),
           const SizedBox(height: 14),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text('฿14,900',
-                  style: TextStyle(
+            children: [
+              Text(shoe?.price ?? '',
+                  style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       color: AppColors.accent)),
-              Row(
+              const Row(
                 children: [
                   Text('ดูรองเท้าและเรื่องราว',
                       style: TextStyle(
@@ -591,28 +630,6 @@ class _HomePageState extends State<HomePage> {
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _imagePlaceholder({required double height, required String label}) {
-    return Container(
-      height: height,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.imageBg,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.directions_run_rounded,
-              size: height * 0.35, color: AppColors.placeholder),
-          const SizedBox(height: 6),
-          Text(label,
-              style:
-              const TextStyle(fontSize: 11, color: AppColors.inkSoft)),
         ],
       ),
     );
@@ -635,26 +652,30 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ---------------- Grid (static ไว้ก่อน) ----------------
+
   Widget _shoeGrid() {
-    const items = [
-      ['LIMITED EDITION · เหลือ 3 คู่', 'Air Jordan 1 High OG', 'Lost & Found · 2022', '฿14,900'],
-      ['VINTAGE INSPIRED · เหลือ 4 คู่', 'Dunk Low SP', 'Syracuse · 2020', '฿9,900'],
-      ['COLLABORATION · เหลือ 1 คู่', 'Air Max 1/97', 'Sean Wotherspoon · 2018', '฿32,900'],
-      ['COLLABORATION · เหลือ 2 คู่', 'New Balance 550', 'Aimé Leon Dore · 2021', '฿12,900'],
-    ];
+    final shoes = _all.skip(1).take(10).toList(); //หยิบ รองเท้ามาแดสง
+    if (shoes.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(
+          child: Text('กำลังโหลด...',
+              style: TextStyle(color: AppColors.inkSoft)),
+        ),
+      );
+    }
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: items.length,
+      itemCount: shoes.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         mainAxisSpacing: 12,
         crossAxisSpacing: 12,
-        childAspectRatio: 0.78,
+        childAspectRatio: 0.85,
       ),
       itemBuilder: (_, i) {
-        final it = items[i];
+        final shoe = shoes[i];
         return Container(
           decoration: BoxDecoration(
             color: AppColors.surface,
@@ -669,8 +690,8 @@ class _HomePageState extends State<HomePage> {
                 child: Container(
                   width: double.infinity,
                   color: AppColors.imageBg,
-                  child: const Icon(Icons.directions_run_rounded,
-                      size: 46, color: AppColors.placeholder),
+                  child: _shoeImage(shoe.imageUrl,
+                      iconSize: 46, fit: BoxFit.contain),
                 ),
               ),
               Padding(
@@ -678,27 +699,15 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(it[0],
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 9.5, color: AppColors.gold)),
-                    const SizedBox(height: 4),
-                    Text(it[1],
+                    Text(shoe.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: AppColors.ink)),
-                    const SizedBox(height: 2),
-                    Text(it[2],
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 12, color: AppColors.inkSoft)),
                     const SizedBox(height: 6),
-                    Text(it[3],
+                    Text(shoe.price ?? '',
                         style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
@@ -713,7 +722,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ---------------- Story card (static ไว้ก่อน) ----------------
+  // ---------------- Story card (รูปจากฐานข้อมูล ข้อความยังเป็นตัวอย่าง) ----------------
   Widget _storyCard() {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -724,15 +733,20 @@ class _HomePageState extends State<HomePage> {
       ),
       child: Row(
         children: [
-          Container(
-            width: 100,
-            height: 110,
-            decoration: BoxDecoration(
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              width: 100,
+              height: 110,
               color: AppColors.imageBg,
-              borderRadius: BorderRadius.circular(8),
+              child: _shoeImage(
+                _all.length > 5
+                    ? _all[5].imageUrl
+                    : (_all.isNotEmpty ? _all.first.imageUrl : null),
+                height: 110,
+                iconSize: 40,
+              ),
             ),
-            child: const Icon(Icons.directions_run_rounded,
-                size: 40, color: AppColors.placeholder),
           ),
           const SizedBox(width: 14),
           const Expanded(
@@ -749,8 +763,7 @@ class _HomePageState extends State<HomePage> {
                         color: AppColors.ink)),
                 SizedBox(height: 4),
                 Text('ทำไมสี Chicago ถึงเป็นจุดเริ่มต้นของนักสะสม',
-                    style:
-                    TextStyle(fontSize: 12, color: AppColors.inkSoft)),
+                    style: TextStyle(fontSize: 12, color: AppColors.inkSoft)),
                 SizedBox(height: 8),
                 Text('อ่านเรื่องราว →',
                     style: TextStyle(
@@ -765,7 +778,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ---------------- Bottom nav ----------------
+  // tab bar
   Widget _bottomNav() {
     const tabs = [
       [Icons.home_outlined, Icons.home_rounded, 'หน้าแรก'],
@@ -778,13 +791,26 @@ class _HomePageState extends State<HomePage> {
         color: AppColors.surface,
         border: Border(top: BorderSide(color: AppColors.line)),
       ),
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: List.generate(tabs.length, (i) {
           final sel = i == _navIndex;
           return GestureDetector(
-            onTap: () => setState(() => _navIndex = i),
+            onTap: () {
+              setState(() => _navIndex = i);
+
+              if (i == 3) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => LoginPage(
+
+                    ),
+                  ),
+                );
+              }
+            },
             behavior: HitTestBehavior.opaque,
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -794,19 +820,19 @@ class _HomePageState extends State<HomePage> {
                   const EdgeInsets.symmetric(horizontal: 18, vertical: 5),
                   decoration: BoxDecoration(
                     color: sel ? AppColors.accentSoft : Colors.transparent,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
                     (sel ? tabs[i][1] : tabs[i][0]) as IconData,
-                    size: 24,
+                    size: 26,
                     color: sel ? AppColors.accent : AppColors.inkSoft,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 Text(
                   tabs[i][2] as String,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 14,
                     fontWeight: sel ? FontWeight.w700 : FontWeight.w400,
                     color: sel ? AppColors.accent : AppColors.inkSoft,
                   ),
