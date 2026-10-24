@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'pages/login.dart';
 import 'pages/profile.dart';
+import 'pages/orders.dart';
 
 
 const String kApiBaseUrl = 'http://127.0.0.1:8000';
@@ -124,20 +125,15 @@ class _HomePageState extends State<HomePage> {
   int _selectedChip = 0;
   int _navIndex = 0;
 
+
   static const _chips = ['ทั้งหมด', 'Vintage', 'Limited Edition', 'Collaboration'];
 
   // อยู่ในโหมดค้นหา = มีข้อความอยู่ในช่องค้นหา
   bool get _searching => _controller.text.trim().isNotEmpty;
+  // เปลี่ยนรองเท้าใน cardhero
   Shoe? get _heroShoe {
     if (_all.isEmpty) return null;
-    return _all.firstWhere(
-          (s) =>
-      s.imageUrl != null &&
-          s.imageUrl!.trim().isNotEmpty &&
-          s.name != 'product-card__link-overlay' &&
-          s.price != '฿product-price',
-      orElse: () => _all.first,
-    );
+    return _all.length > 100 ? _all[6] : _all.first;
   }
 
   @override
@@ -162,9 +158,10 @@ class _HomePageState extends State<HomePage> {
     });
     try {
       final data = await ShoeApi.fetchAll();
-      for (final shoe in data) {
+      for (var i = 0; i < data.length; i++) {
+        final shoe = data[i];
         debugPrint(
-          'ชื่อ: ${shoe.name} | ราคา: ${shoe.price} | รูป: ${shoe.imageUrl}',
+          '[$i] ชื่อ: ${shoe.name} | ราคา: ${shoe.price} | รูป: ${shoe.imageUrl}',
         );
       }
       if (!mounted) return;
@@ -278,24 +275,24 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           TextButton(
-             onPressed: () {
-               Navigator.push(
+            onPressed: () {
+              Navigator.push(
                 context,
-                 MaterialPageRoute(
-                 builder: (context) => const LoginPage(),
+                MaterialPageRoute(
+                  builder: (context) => const LoginPage(),
                 ),
-            );
-         },
-          child: Transform.translate(
+              );
+            },
+            child: Transform.translate(
               offset: const Offset(-14, 0), ///margin right
               child: const Text(
-                  'Login',
+                'Login',
                 style: TextStyle(
-                color: AppColors.ink,
-                fontWeight: FontWeight.bold,
+                  color: AppColors.ink,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          ),
           ),
           const Icon(Icons.notifications_none_rounded,
               size: 26, color: AppColors.ink),
@@ -413,7 +410,7 @@ class _HomePageState extends State<HomePage> {
         ),
       );
     }
-
+    /// ถ้าไม่เจอ สินค้า จะขึ้น error
     if (_results.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 48),
@@ -583,7 +580,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // การ์ด แรกสุด (ใช้รองเท้าคู่แรกจากฐานข้อมูล)
+  // การ์ด hero ใหญ่ (เลือกรองเท้าที่ getter _heroShoe)
   Widget _heroCard() {
     final shoe = _heroShoe;
     debugPrint('hero: ${shoe?.name} / ${shoe?.imageUrl}');
@@ -591,7 +588,7 @@ class _HomePageState extends State<HomePage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.line),
       ),
       child: Column(
@@ -618,6 +615,7 @@ class _HomePageState extends State<HomePage> {
                   height: 320, iconSize: 60, fit: BoxFit.contain),
             ),
           ),
+          ///กรณี error
           const SizedBox(height: 16),
           Text(
             shoe?.name ?? 'กำลังโหลด...',
@@ -634,7 +632,7 @@ class _HomePageState extends State<HomePage> {
             children: [
               Text(shoe?.price ?? '',
                   style: const TextStyle(
-                      fontSize: 18,
+                      fontSize: 30,
                       fontWeight: FontWeight.w700,
                       color: AppColors.accent)),
               const Row(
@@ -655,7 +653,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ---------------- Section title ----------------
+  // all title
   Widget _sectionTitle(String title, String action) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -757,7 +755,7 @@ class _HomePageState extends State<HomePage> {
             borderRadius: BorderRadius.circular(8),
             child: Container(
               width: 100,
-              height: 110,
+              height: 100,
               color: AppColors.imageBg,
               child: _shoeImage(
                 _all.length > 5
@@ -820,7 +818,15 @@ class _HomePageState extends State<HomePage> {
             onTap: () {
               setState(() => _navIndex = i);
 
-              if (i == 3) {
+              if (i == 1) {// แท็บที่ 1: ไปหน้าตะกร้าสินค้า
+                Navigator.push(
+                  context,
+                    MaterialPageRoute(
+                    builder: (context) => const CartAndCheckoutPage(),
+                     ),
+                    );
+                  }
+              else if (i == 3) {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
