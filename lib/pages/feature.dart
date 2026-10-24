@@ -36,19 +36,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   final List<String> sizes = ['8', '8.5', '9', '9.5', '10'];
   final List<String> disabledSizes = ['8', '9.5'];
 
+  // ข้อมูลสำหรับ Thumbnails (พร้อมเตรียมดึง API รูปภาพในอนาคต)
   final List<Map<String, String>> gallery = [
-    {
-      'label': 'ด้านข้าง',
-      'url': 'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=800'
-    },
-    {
-      'label': 'ด้านหลัง',
-      'url': 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=800'
-    },
-    {
-      'label': 'พื้นรองเท้า',
-      'url': 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=800'
-    },
+    {'label': 'ด้านข้าง', 'url': ''},
+    {'label': 'ด้านหลัง', 'url': ''},
+    {'label': 'พื้นรองเท้า', 'url': ''},
   ];
 
   @override
@@ -74,7 +66,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          // ถ้าความกว้างหน้าจอมากกว่า 800px (คอมพิวเตอร์/แท็บเล็ต) ให้แยกเป็น 2 คอลัมน์
           bool isDesktop = constraints.maxWidth > 800;
 
           if (isDesktop) {
@@ -147,22 +138,29 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
-  // 1. ส่วนรูปภาพหลัก และ Thumbnails
+  // 1. ส่วนรูปภาพหลัก และ Thumbnails (ทำเป็นกรอบสี่เหลี่ยมรอไว้สำหรับดึง API)
   Widget _buildImageGallery() {
     return Column(
       children: [
+        // กรอบรูปภาพหลัก (ส่วนที่วงสีแดงใหญ่)
         Stack(
           children: [
             Container(
               height: 320,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.grey[900],
+                color: const Color(0xFF2A2A2A), // กรอบสีเทา
                 borderRadius: BorderRadius.circular(16),
-                image: DecorationImage(
-                  image: NetworkImage(gallery[selectedImageIndex]['url']!),
-                  fit: BoxFit.cover,
-                ),
+                border: Border.all(color: Colors.white12),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.image_outlined, size: 64, color: Colors.grey),
+                  SizedBox(height: 8),
+                  Text('พื้นที่สำหรับแสดงรูปภาพหลัก (API)',
+                      style: TextStyle(color: Colors.grey, fontSize: 12)),
+                ],
               ),
             ),
             Positioned(
@@ -183,6 +181,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           ],
         ),
         const SizedBox(height: 12),
+
+        // กรอบรูป Thumbnails ด้านล่าง 3 กรอบ (ส่วนที่วงสีแดงเล็ก)
         Row(
           children: List.generate(gallery.length, (index) {
             bool isSelected = selectedImageIndex == index;
@@ -193,28 +193,32 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   margin: EdgeInsets.only(right: index == gallery.length - 1 ? 0 : 8),
                   height: 90,
                   decoration: BoxDecoration(
+                    color: const Color(0xFF2A2A2A), // กรอบสีเทา
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: isSelected ? const Color(0xFFFF5500) : Colors.transparent,
+                      color: isSelected ? const Color(0xFFFF5500) : Colors.white12,
                       width: 2,
                     ),
-                    image: DecorationImage(
-                      image: NetworkImage(gallery[index]['url']!),
-                      fit: BoxFit.cover,
-                    ),
                   ),
-                  child: Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Container(
-                      width: double.infinity,
-                      color: Colors.black54,
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Text(
-                        gallery[index]['label']!,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 10, color: Colors.white),
+                  child: Stack(
+                    children: [
+                      const Center(
+                        child: Icon(Icons.image_outlined, size: 28, color: Colors.grey),
                       ),
-                    ),
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Container(
+                          width: double.infinity,
+                          color: Colors.black54,
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Text(
+                            gallery[index]['label']!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 10, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
