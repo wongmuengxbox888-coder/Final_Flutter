@@ -128,6 +128,17 @@ class _HomePageState extends State<HomePage> {
 
   // อยู่ในโหมดค้นหา = มีข้อความอยู่ในช่องค้นหา
   bool get _searching => _controller.text.trim().isNotEmpty;
+  Shoe? get _heroShoe {
+    if (_all.isEmpty) return null;
+    return _all.firstWhere(
+          (s) =>
+      s.imageUrl != null &&
+          s.imageUrl!.trim().isNotEmpty &&
+          s.name != 'product-card__link-overlay' &&
+          s.price != '฿product-price',
+      orElse: () => _all.first,
+    );
+  }
 
   @override
   void initState() {
@@ -151,6 +162,11 @@ class _HomePageState extends State<HomePage> {
     });
     try {
       final data = await ShoeApi.fetchAll();
+      for (final shoe in data) {
+        debugPrint(
+          'ชื่อ: ${shoe.name} | ราคา: ${shoe.price} | รูป: ${shoe.imageUrl}',
+        );
+      }
       if (!mounted) return;
       setState(() {
         _all = data;
@@ -270,6 +286,8 @@ class _HomePageState extends State<HomePage> {
                 ),
             );
          },
+          child: Transform.translate(
+              offset: const Offset(-14, 0), ///margin right
               child: const Text(
                   'Login',
                 style: TextStyle(
@@ -277,6 +295,7 @@ class _HomePageState extends State<HomePage> {
                 fontWeight: FontWeight.bold,
               ),
             ),
+          ),
           ),
           const Icon(Icons.notifications_none_rounded,
               size: 26, color: AppColors.ink),
@@ -566,7 +585,8 @@ class _HomePageState extends State<HomePage> {
 
   // การ์ด แรกสุด (ใช้รองเท้าคู่แรกจากฐานข้อมูล)
   Widget _heroCard() {
-    final shoe = _all.isNotEmpty ? _all.first : null;
+    final shoe = _heroShoe;
+    debugPrint('hero: ${shoe?.name} / ${shoe?.imageUrl}');
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -589,13 +609,13 @@ class _HomePageState extends State<HomePage> {
                   style: TextStyle(fontSize: 11, color: AppColors.inkSoft)),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 12),  ///กล่องใน
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Container(
               color: AppColors.imageBg,
               child: _shoeImage(shoe?.imageUrl,
-                  height: 170, iconSize: 60, fit: BoxFit.contain),
+                  height: 320, iconSize: 60, fit: BoxFit.contain),
             ),
           ),
           const SizedBox(height: 16),
