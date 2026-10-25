@@ -1,27 +1,27 @@
 import 'package:flutter/material.dart';
+import '../main.dart';
+import 'orders.dart';
+///สำหรับ api
+class ShoeModel {
+  final String id;
+  final String name;
+  final String details;
+  final String imageUrl;
 
+  ShoeModel({
+    required this.id,
+    required this.name,
+    required this.details,
+    required this.imageUrl,
+  });
 
-
-const String apiUrl = 'http://127.0.0.1:8000';
-
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF121212),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFFF5500),
-        ),
-      ),
-      home: const ShoeRackAndOrdersPage(),
+  // ฟังก์ชันแปลงข้อมูลจาก API
+  factory ShoeModel.fromJson(Map<String, dynamic> json) {
+    return ShoeModel(
+      id: (json['id'] ?? '').toString(),
+      name: json['name'] ?? '',
+      details: json['details'] ?? '',
+      imageUrl: json['image_url'] ?? '',
     );
   }
 }
@@ -29,81 +29,89 @@ class MyApp extends StatelessWidget {
 class ShoeRackAndOrdersPage extends StatefulWidget {
   const ShoeRackAndOrdersPage({super.key});
 
+  // รายการลองเท้าใน คอลเล้กชั่น
+  static final List<ShoeModel> shoeList = [];
+
+  // จะมีข้อมูลตอนกดยืนยัน
+  static final List<Map<String, dynamic>> orders = [];
+
+  // ตัวนับเลขคำสั่งซื้อ
+  static int _orderCounter = 0;
+
+  // ใส่ comma คั่นหลักพัน เช่น 13000 -> 13,000
+  static String _fmt(int n) => n.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
+
+
+  static void addConfirmedOrder({
+    required List<Map<String, dynamic>> items,
+    required int total,
+    int? orderNumber, // เลข order_id จากฐานข้อมูล ใส่ไว้ก่อน ไม่มีนะอันนี้
+  }) {
+    if (items.isEmpty) return;
+
+    final now = DateTime.now();
+    const months = [
+      'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+      'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+    ];
+    final dateText = '${now.day} ${months[now.month - 1]} ${now.year}';
+
+    // สร้างเลขคำสั่งซื้อ เช่น #RP-261025-025
+    final number = orderNumber ?? ++_orderCounter;
+    final yy = (now.year % 100).toString().padLeft(2, '0');
+    final mm = now.month.toString().padLeft(2, '0');
+    final dd = now.day.toString().padLeft(2, '0');
+    final orderId = '#RP-$yy$mm$dd-${number.toString().padLeft(3, '0')}';
+
+    // 1) เพิ่มรองเท้าเข้าคอลเลกชัน 1 การ์ดต่อ 1 คู่ ไว้บนสุด
+    var pairs = 0;
+    for (final item in items) {
+      final qty = (item['quantity'] as int?) ?? 1;
+      for (var i = 0; i < qty; i++) {
+        pairs++;
+        shoeList.insert(
+          0,
+          ShoeModel(
+            id: '${now.millisecondsSinceEpoch}-$pairs',
+            name: item['name'].toString(),
+            details: '${item['size']} • สั่งซื้อ $dateText',
+            imageUrl: item['image']?.toString() ?? '',
+          ),
+        );
+      }
+    }
+
+    // เพิ่มคำสั่งซื้อเข้ารายการคำสั่งซื้อ (สถานะ Pending) ไว้บนสุด
+    final first = items.first;
+    final name = items.length == 1
+        ? first['name'].toString()
+        : '${first['name']} และอีก ${items.length - 1} รายการ';
+    final sizeQty = items.length == 1
+        ? '${first['size']} • ${first['quantity']} คู่'
+        : '$pairs คู่';
+
+    orders.insert(0, {
+      'id': orderId,
+      'date': 'สั่งซื้อ $dateText',
+      'status': 'Pending',
+      'statusText': 'รอชำระเงินภายใน 30 นาที',
+      'name': name,
+      'sizeQty': sizeQty,
+      'price': '฿${_fmt(total)}',
+      'image': first['image']?.toString() ?? '',
+      'step': 1,
+    });
+  }
+
   @override
   State<ShoeRackAndOrdersPage> createState() => _ShoeRackAndOrdersPageState();
 }
 
 class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
-  // ข้อมูลชั้นรองเท้า (คอลเลกชันที่ครอบครอง)
-  final List<Map<String, String>> shoeRackList = [
-    {
-      'name': "Dunk Low 'Panda'",
-      'details': 'US 9 • รับเมื่อ 12 ต.ค. 2026',
-      'image': 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=800',
-    },
-    {
-      'name': "AJ1 'Bred' (2001)",
-      'details': 'US 9 • รับเมื่อ 20 ก.ย. 2026',
-      'image': 'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=800',
-    },
-    {
-      'name': "Air Max 90 'Infrared'",
-      'details': 'US 9 • รับเมื่อ 8 ส.ค. 2026',
-      'image': 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=800',
-    },
-    {
-      'name': "SB Dunk 'Purple Lobster'",
-      'details': 'US 9 • รับเมื่อ 14 มิ.ย. 2026',
-      'image': 'https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=800',
-    },
-    {
-      'name': "990v3 'Grey' (2012)",
-      'details': 'US 9 • รับเมื่อ 3 ก.พ. 2026',
-      'image': 'https://images.unsplash.com/photo-1539185441755-769473a23570?w=800',
-    },
-    {
-      'name': "350 'Turtle Dove'",
-      'details': 'US 9 • รับเมื่อ 18 ธ.ค. 2025',
-      'image': 'https://images.unsplash.com/photo-1582588678413-dbf45f4823e9?w=800',
-    },
-  ];
-
-  // ข้อมูลคำสั่งซื้อ
-  final List<Map<String, dynamic>> ordersList = [
-    {
-      'id': '#RP-261018-024',
-      'date': 'สั่งซื้อ 18 ต.ค. 2026',
-      'status': 'Pending',
-      'statusText': 'รอชำระเงินภายใน 10:11 น. วันนี้',
-      'name': 'New Balance 550 • Aimé Leon Dore',
-      'sizeQty': 'US 9 • 1 คู่',
-      'price': '฿13,000',
-      'image': 'https://images.unsplash.com/photo-1539185441755-769473a23570?w=800',
-      'step': 1, // 1: Pending, 2: Shipped, 3: Delivered
-    },
-    {
-      'id': '#RP-261016-018',
-      'date': 'สั่งซื้อ 16 ต.ค. 2026',
-      'status': 'Shipped',
-      'statusText': 'TH Post: TH0123456789 • คาดถึง 20 ต.ค.',
-      'name': 'Air Max 1/97 • Sean Wotherspoon',
-      'sizeQty': 'US 9 • 1 คู่',
-      'price': '฿33,000',
-      'image': 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=800',
-      'step': 2,
-    },
-    {
-      'id': '#RP-261008-011',
-      'date': 'สั่งซื้อ 8 ต.ค. 2026',
-      'status': 'Delivered',
-      'statusText': 'รับสำเร็จ 12 ต.ค. 2026 • เพิ่มในชั้นรองเท้าแล้ว',
-      'name': 'Dunk Low • Panda',
-      'sizeQty': 'US 9 • 1 คู่',
-      'price': '฿8,000',
-      'image': 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=800',
-      'step': 3,
-    },
-  ];
+  // ใช้ข้อมูลจาก static list (โค้ดเดิมด้านล่างเรียกชื่อเดิมได้เหมือนเดิม)
+  List<ShoeModel> get shoeListFromApi => ShoeRackAndOrdersPage.shoeList;
+  List<Map<String, dynamic>> get ordersList => ShoeRackAndOrdersPage.orders;
 
   @override
   Widget build(BuildContext context) {
@@ -113,7 +121,9 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () {},
+          onPressed: () {
+            Navigator.maybePop(context); // เพิ่ม: กดย้อนกลับได้
+          },
         ),
         title: const Text(
           'ชั้นรองเท้าของฉัน',
@@ -193,8 +203,24 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
         backgroundColor: const Color(0xFF1A1A1A),
         selectedItemColor: const Color(0xFFFF5500),
         unselectedItemColor: Colors.grey,
-        currentIndex: 2, // เลือกหน้าคอลเลกชัน / ชั้นรองเท้า
+        currentIndex: 2,
         type: BottomNavigationBarType.fixed,
+        // เพิ่ม: กดเมนูล่างเพื่อไปหน้าแรก / ตะกร้า
+        onTap: (index) {
+          if (index == 0) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const HomePage()),
+            );
+          } else if (index == 1) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const CartAndCheckoutPage(),
+              ),
+            );
+          }
+        },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'หน้าแรก'),
           BottomNavigationBarItem(icon: Icon(Icons.shopping_bag_outlined), label: 'ตะกร้า'),
@@ -217,9 +243,9 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
       ),
       child: Row(
         children: [
-          const Text(
-            '6',
-            style: TextStyle(
+          Text(
+            '${shoeListFromApi.length}',
+            style: const TextStyle(
               fontSize: 48,
               fontWeight: FontWeight.bold,
               height: 1.0,
@@ -228,8 +254,8 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
           const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text(
+            children: [
+              const Text(
                 'MY VIRTUAL SHOE RACK',
                 style: TextStyle(
                   color: Colors.grey,
@@ -238,13 +264,13 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: 4),
               Text(
-                'สะสมแล้ว 6 คู่',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                'สะสมแล้ว ${shoeListFromApi.length} คู่',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              SizedBox(height: 2),
-              Text(
+              const SizedBox(height: 2),
+              const Text(
                 'รับสินค้าแล้วเท่านั้น',
                 style: TextStyle(color: Colors.grey, fontSize: 11),
               ),
@@ -255,7 +281,7 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
     );
   }
 
-  // 2. หัวข้อคอลเลกชัน
+  //  หัวข้อคอลเลกชัน
   Widget _buildCollectionHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -275,12 +301,25 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
     );
   }
 
-  // 3. Grid แสดงรองเท้าที่ครอบครอง
+  // Grid แสดงรองเท้า
   Widget _buildShoeGrid({required int crossAxisCount}) {
+    // ยังไม่มีรองเท้า = โชว์ข้อความว่าง
+    if (shoeListFromApi.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 32),
+        child: Center(
+          child: Text(
+            'ยังไม่มีรองเท้าในคอลเลกชัน',
+            style: TextStyle(color: Colors.grey, fontSize: 13),
+          ),
+        ),
+      );
+    }
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: shoeRackList.length,
+      itemCount: shoeListFromApi.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
         childAspectRatio: 0.8,
@@ -288,7 +327,8 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
         mainAxisSpacing: 12,
       ),
       itemBuilder: (context, index) {
-        final shoe = shoeRackList[index];
+        final shoe = shoeListFromApi[index];
+
         return Container(
           decoration: BoxDecoration(
             color: const Color(0xFF1E1E1E),
@@ -298,24 +338,49 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // --- กรอบรูปภาพ ---
               Expanded(
-                child: ClipRRect(
-                  borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(12)),
-                  child: Image.network(
-                    shoe['image']!,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
+                child: Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF2A2A2A), // กรอบสีเทา
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                  ),
+                  child: shoe.imageUrl.isNotEmpty
+                      ? ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(12)),
+                    child: Image.network(
+                      shoe.imageUrl,
+                      fit: BoxFit.cover,
+                      // เพิ่ม: โหลดรูปไม่ได้ให้โชว์ไอคอนแทน
+                      errorBuilder: (_, __, ___) => const Center(
+                        child: Icon(
+                          Icons.image_outlined,
+                          color: Colors.grey,
+                          size: 36,
+                        ),
+                      ),
+                    ),
+                  )
+                      : const Center(
+                    child: Icon(
+                      Icons.image_outlined,
+                      color: Colors.grey,
+                      size: 36,
+                    ),
                   ),
                 ),
               ),
+
+              // --- ส่วนข้อมูลใต้รูปภาพ ---
               Padding(
                 padding: const EdgeInsets.all(10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      shoe['name']!,
+                      shoe.name,
                       style: const TextStyle(
                           fontWeight: FontWeight.bold, fontSize: 13),
                       maxLines: 1,
@@ -323,8 +388,10 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      shoe['details']!,
+                      shoe.details,
                       style: TextStyle(color: Colors.grey[500], fontSize: 10),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     Row(
@@ -347,27 +414,31 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
     );
   }
 
-  // 4. หัวข้อคำสั่งซื้อและการจัดส่ง
+  //  หัวข้อคำสั่งซื้อและการจัดส่ง
   Widget _buildOrdersHeader() {
+    // นับจำนวนตามรายการจริง แทนตัวเลขที่เคยเขียนตายตัว
+    final done = ordersList.where((o) => o['status'] == 'Delivered').length;
+    final active = ordersList.length - done;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: const [
-            Text(
+          children: [
+            const Text(
               'คำสั่งซื้อและการจัดส่ง',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             Text(
-              '3 คำสั่งซื้อ',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
+              '${ordersList.length} คำสั่งซื้อ',
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
             ),
           ],
         ),
         const SizedBox(height: 6),
         Text(
-          'กำลังดำเนินการ 2 รายการ • สำเร็จล่าสุด 1 รายการ\nยอดแต่ละคำสั่งซื้อรวมค่าจัดส่ง ฿100 แล้ว',
+          'กำลังดำเนินการ $active รายการ • สำเร็จล่าสุด $done รายการ\nยอดแต่ละคำสั่งซื้อรวมค่าจัดส่ง ฿100 แล้ว',
           style: TextStyle(color: Colors.grey[500], fontSize: 11, height: 1.4),
         ),
       ],
@@ -376,6 +447,19 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
 
   // 5. รายการคำสั่งซื้อ
   Widget _buildOrdersList() {
+
+    if (ordersList.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 32),
+        child: Center(
+          child: Text(
+            'ยังไม่มีคำสั่งซื้อ',
+            style: TextStyle(color: Colors.grey, fontSize: 13),
+          ),
+        ),
+      );
+    }
+
     return Column(
       children: ordersList.map((order) => _buildOrderCard(order)).toList(),
     );
@@ -393,7 +477,6 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header ของการ์ดคำสั่งซื้อ
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -412,17 +495,30 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
           ),
           const SizedBox(height: 12),
 
-          // รายละเอียดสินค้า
           Row(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  order['image'],
-                  width: 70,
-                  height: 70,
-                  fit: BoxFit.cover,
+              // กรอบรูปภาพสำหรับ Order
+              Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2A2A2A),
+                  borderRadius: BorderRadius.circular(8),
                 ),
+                child: order['image'] != ''
+                    ? ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    order['image'],
+                    fit: BoxFit.cover,
+                    // เพิ่ม: โหลดรูปไม่ได้ให้โชว์ไอคอนแทน
+                    errorBuilder: (_, __, ___) => const Icon(
+                        Icons.image_outlined,
+                        color: Colors.grey,
+                        size: 28),
+                  ),
+                )
+                    : const Icon(Icons.image_outlined, color: Colors.grey, size: 28),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -451,7 +547,6 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
           ),
           const SizedBox(height: 16),
 
-          // Progress Bar สถานะการจัดส่ง
           _buildStatusProgressBar(order['step']),
           const SizedBox(height: 8),
 
@@ -461,14 +556,12 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
           ),
           const SizedBox(height: 16),
 
-          // ปุ่ม Action ตามสถานะ
           _buildOrderActionButton(order['status']),
         ],
       ),
     );
   }
 
-  // Widget แสดง Badge สถานะ
   Widget _buildStatusBadge(String status) {
     if (status == 'Pending') {
       return Container(
@@ -504,7 +597,6 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
     }
   }
 
-  // Widget แสดง เส้น Progress สถานะ
   Widget _buildStatusProgressBar(int step) {
     return Row(
       children: [
@@ -556,7 +648,6 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
     );
   }
 
-  // Widget แสดงปุ่มตามสถานะ
   Widget _buildOrderActionButton(String status) {
     if (status == 'Pending') {
       return SizedBox(
