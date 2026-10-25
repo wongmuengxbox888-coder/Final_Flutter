@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
 import 'orders.dart';
+import '../widgets/app_bottom_navigation_bar.dart';
+
 ///สำหรับ api
 class ShoeModel {
   final String id;
@@ -40,20 +42,33 @@ class ShoeRackAndOrdersPage extends StatefulWidget {
 
   // ใส่ comma คั่นหลักพัน เช่น 13000 -> 13,000
   static String _fmt(int n) => n.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
-
+    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+    (Match m) => '${m[1]},',
+  );
 
   static void addConfirmedOrder({
     required List<Map<String, dynamic>> items,
     required int total,
     int? orderNumber, // เลข order_id จากฐานข้อมูล ใส่ไว้ก่อน ไม่มีนะอันนี้
+    String shippingMethod = 'จัดส่งมาตรฐาน',
+    String paymentMethod = 'QR พร้อมเพย์ / PromptPay',
   }) {
     if (items.isEmpty) return;
 
     final now = DateTime.now();
     const months = [
-      'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
-      'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+      'ม.ค.',
+      'ก.พ.',
+      'มี.ค.',
+      'เม.ย.',
+      'พ.ค.',
+      'มิ.ย.',
+      'ก.ค.',
+      'ส.ค.',
+      'ก.ย.',
+      'ต.ค.',
+      'พ.ย.',
+      'ธ.ค.',
     ];
     final dateText = '${now.day} ${months[now.month - 1]} ${now.year}';
 
@@ -95,11 +110,15 @@ class ShoeRackAndOrdersPage extends StatefulWidget {
       'id': orderId,
       'date': 'สั่งซื้อ $dateText',
       'status': 'Pending',
-      'statusText': 'รอชำระเงินภายใน 30 นาที',
+      'statusText': paymentMethod == 'เก็บเงินปลายทาง'
+          ? 'ชำระเงินเมื่อได้รับสินค้า'
+          : 'รอชำระเงินภายใน 30 นาที',
       'name': name,
       'sizeQty': sizeQty,
       'price': '฿${_fmt(total)}',
       'image': first['image']?.toString() ?? '',
+      'shippingMethod': shippingMethod,
+      'paymentMethod': paymentMethod,
       'step': 1,
     });
   }
@@ -133,7 +152,7 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
           IconButton(
             icon: const Icon(Icons.notifications_none),
             onPressed: () {},
-          )
+          ),
         ],
       ),
       body: LayoutBuilder(
@@ -199,34 +218,14 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
           );
         },
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xFF1A1A1A),
-        selectedItemColor: const Color(0xFFFF5500),
-        unselectedItemColor: Colors.grey,
+      bottomNavigationBar: AppBottomNavigationBar(
         currentIndex: 2,
-        type: BottomNavigationBarType.fixed,
-        // เพิ่ม: กดเมนูล่างเพื่อไปหน้าแรก / ตะกร้า
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const HomePage()),
-            );
-          } else if (index == 1) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const CartAndCheckoutPage(),
-              ),
-            );
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'หน้าแรก'),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_bag_outlined), label: 'ตะกร้า'),
-          BottomNavigationBarItem(icon: Icon(Icons.grid_view), label: 'คอลเลกชัน'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'โปรไฟล์'),
-        ],
+        onTap: (index) => navigateToAppTab(
+          context,
+          index,
+          userId: CartAndCheckoutPage.currentUserId,
+          currentIndex: 2,
+        ),
       ),
     );
   }
@@ -267,7 +266,10 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
               const SizedBox(height: 4),
               Text(
                 'สะสมแล้ว ${shoeListFromApi.length} คู่',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 2),
               const Text(
@@ -344,32 +346,35 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     color: Color(0xFF2A2A2A), // กรอบสีเทา
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(12),
+                    ),
                   ),
                   child: shoe.imageUrl.isNotEmpty
                       ? ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(12)),
-                    child: Image.network(
-                      shoe.imageUrl,
-                      fit: BoxFit.cover,
-                      // เพิ่ม: โหลดรูปไม่ได้ให้โชว์ไอคอนแทน
-                      errorBuilder: (_, __, ___) => const Center(
-                        child: Icon(
-                          Icons.image_outlined,
-                          color: Colors.grey,
-                          size: 36,
-                        ),
-                      ),
-                    ),
-                  )
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(12),
+                          ),
+                          child: Image.network(
+                            shoe.imageUrl,
+                            fit: BoxFit.cover,
+                            // เพิ่ม: โหลดรูปไม่ได้ให้โชว์ไอคอนแทน
+                            errorBuilder: (_, __, ___) => const Center(
+                              child: Icon(
+                                Icons.image_outlined,
+                                color: Colors.grey,
+                                size: 36,
+                              ),
+                            ),
+                          ),
+                        )
                       : const Center(
-                    child: Icon(
-                      Icons.image_outlined,
-                      color: Colors.grey,
-                      size: 36,
-                    ),
-                  ),
+                          child: Icon(
+                            Icons.image_outlined,
+                            color: Colors.grey,
+                            size: 36,
+                          ),
+                        ),
                 ),
               ),
 
@@ -382,7 +387,9 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
                     Text(
                       shoe.name,
                       style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 13),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -403,10 +410,10 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
                         SizedBox(width: 4),
                         Icon(Icons.check, size: 12, color: Colors.grey),
                       ],
-                    )
+                    ),
                   ],
                 ),
-              )
+              ),
             ],
           ),
         );
@@ -438,7 +445,7 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
         ),
         const SizedBox(height: 6),
         Text(
-          'กำลังดำเนินการ $active รายการ • สำเร็จล่าสุด $done รายการ\nยอดแต่ละคำสั่งซื้อรวมค่าจัดส่ง ฿100 แล้ว',
+          'กำลังดำเนินการ $active รายการ • สำเร็จล่าสุด $done รายการ\nยอดแต่ละคำสั่งซื้อรวมค่าจัดส่งแล้ว',
           style: TextStyle(color: Colors.grey[500], fontSize: 11, height: 1.4),
         ),
       ],
@@ -447,7 +454,6 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
 
   // 5. รายการคำสั่งซื้อ
   Widget _buildOrdersList() {
-
     if (ordersList.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 32),
@@ -483,7 +489,9 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
               Text(
                 order['id'],
                 style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 14),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
               _buildStatusBadge(order['status']),
             ],
@@ -507,18 +515,23 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
                 ),
                 child: order['image'] != ''
                     ? ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    order['image'],
-                    fit: BoxFit.cover,
-                    // เพิ่ม: โหลดรูปไม่ได้ให้โชว์ไอคอนแทน
-                    errorBuilder: (_, __, ___) => const Icon(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          order['image'],
+                          fit: BoxFit.cover,
+                          // เพิ่ม: โหลดรูปไม่ได้ให้โชว์ไอคอนแทน
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.image_outlined,
+                            color: Colors.grey,
+                            size: 28,
+                          ),
+                        ),
+                      )
+                    : const Icon(
                         Icons.image_outlined,
                         color: Colors.grey,
-                        size: 28),
-                  ),
-                )
-                    : const Icon(Icons.image_outlined, color: Colors.grey, size: 28),
+                        size: 28,
+                      ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -528,7 +541,9 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
                     Text(
                       order['name'],
                       style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 14),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -541,7 +556,9 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
               Text(
                 order['price'],
                 style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 16),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
             ],
           ),
@@ -556,7 +573,10 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
           ),
           const SizedBox(height: 16),
 
-          _buildOrderActionButton(order['status']),
+          _buildOrderActionButton(
+            order['status'],
+            paymentMethod: order['paymentMethod']?.toString(),
+          ),
         ],
       ),
     );
@@ -573,14 +593,20 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
         child: const Text(
           'Pending',
           style: TextStyle(
-              fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
       );
     } else if (status == 'Shipped') {
       return const Text(
         'Shipped',
         style: TextStyle(
-            fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
       );
     } else {
       return Row(
@@ -590,7 +616,10 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
           Text(
             'Delivered',
             style: TextStyle(
-                fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
         ],
       );
@@ -609,8 +638,10 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
                 color: step >= 1 ? const Color(0xFFFF5500) : Colors.grey[800],
               ),
               const SizedBox(height: 4),
-              const Text('Pending',
-                  style: TextStyle(fontSize: 10, color: Colors.grey)),
+              const Text(
+                'Pending',
+                style: TextStyle(fontSize: 10, color: Colors.grey),
+              ),
             ],
           ),
         ),
@@ -624,8 +655,10 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
                 color: step >= 2 ? const Color(0xFFFF5500) : Colors.grey[800],
               ),
               const SizedBox(height: 4),
-              const Text('Shipped',
-                  style: TextStyle(fontSize: 10, color: Colors.grey)),
+              const Text(
+                'Shipped',
+                style: TextStyle(fontSize: 10, color: Colors.grey),
+              ),
             ],
           ),
         ),
@@ -639,8 +672,10 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
                 color: step >= 3 ? const Color(0xFFFF5500) : Colors.grey[800],
               ),
               const SizedBox(height: 4),
-              const Text('Delivered',
-                  style: TextStyle(fontSize: 10, color: Colors.grey)),
+              const Text(
+                'Delivered',
+                style: TextStyle(fontSize: 10, color: Colors.grey),
+              ),
             ],
           ),
         ),
@@ -648,8 +683,9 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
     );
   }
 
-  Widget _buildOrderActionButton(String status) {
+  Widget _buildOrderActionButton(String status, {String? paymentMethod}) {
     if (status == 'Pending') {
+      final isCashOnDelivery = paymentMethod == 'เก็บเงินปลายทาง';
       return SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
@@ -657,12 +693,17 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFFF5500),
             padding: const EdgeInsets.symmetric(vertical: 12),
-            shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
-          icon: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 18),
-          label: const Text(
-            'ดู QR ชำระเงิน',
+          icon: Icon(
+            isCashOnDelivery ? Icons.payments_outlined : Icons.qr_code_scanner,
+            color: Colors.white,
+            size: 18,
+          ),
+          label: Text(
+            isCashOnDelivery ? 'ชำระเงินเมื่อได้รับสินค้า' : 'ดู QR ชำระเงิน',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),
@@ -675,11 +716,15 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 12),
             side: const BorderSide(color: Colors.white24),
-            shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
-          icon: const Icon(Icons.local_shipping_outlined,
-              color: Colors.white, size: 18),
+          icon: const Icon(
+            Icons.local_shipping_outlined,
+            color: Colors.white,
+            size: 18,
+          ),
           label: const Text(
             'ติดตามพัสดุ',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -694,8 +739,9 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 12),
             side: const BorderSide(color: Colors.white24),
-            shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
           icon: const Icon(Icons.north_east, color: Colors.white, size: 16),
           label: const Text(

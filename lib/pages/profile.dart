@@ -1,16 +1,17 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../main.dart';
+import 'orders.dart';
+import '../widgets/app_bottom_navigation_bar.dart';
 
 const apiUrl = 'http://127.0.0.1:8000';
 
-class ProfilePage extends StatefulWidget { //ตัวเชื่อมหน้า
+class ProfilePage extends StatefulWidget {
+  //ตัวเชื่อมหน้า
   final int? userId;
 
-  const ProfilePage({
-    super.key,
-    required this.userId,
-  });
+  const ProfilePage({super.key, required this.userId});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -21,7 +22,6 @@ class _ProfilePageState extends State<ProfilePage> {
   bool loading = true;
 
   final orange = const Color(0xFFFF5500);
-
 
   @override
   void initState() {
@@ -70,181 +70,161 @@ class _ProfilePageState extends State<ProfilePage> {
         foregroundColor: Colors.white,
         title: const Text(
           'FOR SHOES',
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-            letterSpacing: 2,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2),
         ),
       ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : user == null
           ? const Center(
-        child: Text(
-          'โหลดโปรไฟล์ไม่สำเร็จ',
-          style: TextStyle(color: Colors.white),
-        ),
-      )
+              child: Text(
+                'โหลดโปรไฟล์ไม่สำเร็จ',
+                style: TextStyle(color: Colors.white),
+              ),
+            )
           : ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          const Text(
-            'PROFILE & BADGES',
-            style: TextStyle(
-              color: Colors.white54,
-              fontSize: 10,
-              letterSpacing: 2,
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'โปรไฟล์สะสม',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 25,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // ข้อมูลผู้ใช้จาก MySQL
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1A1A1A),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Column(
+              padding: const EdgeInsets.all(20),
               children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 27,
-                      backgroundColor: Colors.grey.shade800,
-                      child: const Icon(
-                        Icons.person,
-                        color: Colors.white,
-                        size: 30,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                const Text(
+                  'PROFILE & BADGES',
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 10,
+                    letterSpacing: 2,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'โปรไฟล์สะสม',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 25,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // ข้อมูลผู้ใช้จาก MySQL
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A1A1A),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
                         children: [
-                          Text(
-                            user!['username'] ?? 'User',
-                            style: const TextStyle(
+                          CircleAvatar(
+                            radius: 27,
+                            backgroundColor: Colors.grey.shade800,
+                            child: const Icon(
+                              Icons.person,
                               color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 17,
+                              size: 30,
                             ),
                           ),
-                          const SizedBox(height: 5),
-                          Text(
-                            user!['email'] ?? '',
-                            style: const TextStyle(
-                              color: Colors.white54,
-                              fontSize: 12,
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  user!['username'] ?? 'User',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 17,
+                                  ),
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  user!['email'] ?? '',
+                                  style: const TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 24),
+                      const Divider(color: Colors.white12),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _stat('6', 'คู่ที่สะสม'),
+                          _stat('2', 'Collector Badges'),
+                          _stat('2', 'Wishlist'),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 24),
-                const Divider(color: Colors.white12),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment:
-                  MainAxisAlignment.spaceAround,
-                  children: [
-                    _stat('6', 'คู่ที่สะสม'),
-                    _stat('2', 'Collector Badges'),
-                    _stat('2', 'Wishlist'),
-                  ],
+
+                const SizedBox(height: 28),
+                const Text(
+                  'ข้อมูลส่วนตัว',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _info('ชื่อผู้ใช้', user!['username'] ?? ''),
+                _info('อีเมล', user!['email'] ?? ''),
+                _info('รหัสผู้ใช้', '${user!['user_id']}'),
+
+                const SizedBox(height: 28),
+                const Text(
+                  'ป้ายสะสม',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _badge(
+                  Icons.workspace_premium_outlined,
+                  'Rare Hunter',
+                  'เริ่มสะสมรองเท้าคู่แรก',
+                ),
+                const SizedBox(height: 10),
+                _badge(
+                  Icons.history,
+                  'Vintage Collector',
+                  'นักสะสมรองเท้ารุ่นคลาสสิก',
+                ),
+
+                const SizedBox(height: 30),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    CartAndCheckoutPage.currentUserId = null;
+                    navigateToAppTab(context, 0, userId: null);
+                  },
+                  icon: const Icon(Icons.logout),
+                  label: const Text('ออกจากโปรไฟล์'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white24),
+                    padding: const EdgeInsets.all(16),
+                  ),
                 ),
               ],
             ),
-          ),
-
-          const SizedBox(height: 28),
-          const Text(
-            'ข้อมูลส่วนตัว',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _info('ชื่อผู้ใช้', user!['username'] ?? ''),
-          _info('อีเมล', user!['email'] ?? ''),
-          _info('รหัสผู้ใช้', '${user!['user_id']}'),
-
-          const SizedBox(height: 28),
-          const Text(
-            'ป้ายสะสม',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _badge(
-            Icons.workspace_premium_outlined,
-            'Rare Hunter',
-            'เริ่มสะสมรองเท้าคู่แรก',
-          ),
-          const SizedBox(height: 10),
-          _badge(
-            Icons.history,
-            'Vintage Collector',
-            'นักสะสมรองเท้ารุ่นคลาสสิก',
-          ),
-
-          const SizedBox(height: 30),
-          OutlinedButton.icon(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            icon: const Icon(Icons.logout),
-            label: const Text('ออกจากโปรไฟล์'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              side: const BorderSide(color: Colors.white24),
-              padding: const EdgeInsets.all(16),
-            ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: AppBottomNavigationBar(
         currentIndex: 3,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: const Color(0xFF151515),
-        selectedItemColor: orange,
-        unselectedItemColor: Colors.white54,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'หน้าหลัก',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_bag_outlined),
-            label: 'ตะกร้า',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.inventory_2_outlined),
-            label: 'คอลเลกชัน',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'โปรไฟล์',
-          ),
-        ],
+        onTap: (index) => navigateToAppTab(
+          context,
+          index,
+          userId: widget.userId,
+          currentIndex: 3,
+        ),
       ),
     );
   }
@@ -263,10 +243,7 @@ class _ProfilePageState extends State<ProfilePage> {
         const SizedBox(height: 5),
         Text(
           label,
-          style: const TextStyle(
-            color: Colors.white54,
-            fontSize: 10,
-          ),
+          style: const TextStyle(color: Colors.white54, fontSize: 10),
         ),
       ],
     );
@@ -283,10 +260,7 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(color: Colors.white54),
-            ),
+            child: Text(label, style: const TextStyle(color: Colors.white54)),
           ),
           Flexible(
             child: Text(
@@ -325,10 +299,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 const SizedBox(height: 5),
                 Text(
                   subtitle,
-                  style: const TextStyle(
-                    color: Colors.white54,
-                    fontSize: 12,
-                  ),
+                  style: const TextStyle(color: Colors.white54, fontSize: 12),
                 ),
               ],
             ),

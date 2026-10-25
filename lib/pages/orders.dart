@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../main.dart';
 import 'collection.dart'; // เพิ่ม: หน้าคอลเลกชัน (เก็บคำสั่งซื้อที่ยืนยันแล้ว)
+import '../widgets/app_bottom_navigation_bar.dart';
 
 const String apiUrl = 'http://127.0.0.1:8000';
 
@@ -19,9 +20,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xFF121212),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFFF5500),
-        ),
+        colorScheme: const ColorScheme.dark(primary: Color(0xFFFF5500)),
       ),
       home: const CartAndCheckoutPage(),
     );
@@ -31,10 +30,7 @@ class MyApp extends StatelessWidget {
 class CartAndCheckoutPage extends StatefulWidget {
   final Map<String, dynamic>? product;
 
-  const CartAndCheckoutPage({
-    super.key,
-    this.product,
-  });
+  const CartAndCheckoutPage({super.key, this.product});
 
   // ===== เพิ่ม: รายการสินค้าในตะกร้า (static = ใช้ร่วมกันทุกหน้า) =====
   static final List<Map<String, dynamic>> cartItems = [];
@@ -53,13 +49,13 @@ class CartAndCheckoutPage extends StatefulWidget {
 
     // ถ้ามีรองเท้าชื่อเดียวกัน + ไซส์เดียวกันอยู่แล้ว ให้บวกจำนวนเพิ่ม
     final index = cartItems.indexWhere(
-          (item) => item['name'] == product['name'] && item['size'] == size,
+      (item) => item['name'] == product['name'] && item['size'] == size,
     );
 
     if (index != -1) {
       cartItems[index]['quantity'] =
           (cartItems[index]['quantity'] as int) +
-              ((product['quantity'] ?? 1) as int);
+          ((product['quantity'] ?? 1) as int);
     } else {
       // ถ้ายังไม่มี ให้เพิ่มเป็นรายการใหม่
       cartItems.add({
@@ -80,7 +76,6 @@ class CartAndCheckoutPage extends StatefulWidget {
 }
 
 class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
-
   List<Map<String, dynamic>> get cartItems => CartAndCheckoutPage.cartItems;
 
   bool _submitting = false; // เพิ่ม: กันกดยืนยันซ้ำระหว่างรอเซิร์ฟเวอร์
@@ -102,9 +97,7 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
     required String? imageUrl,
   }) {
     setState(() {
-      final index = cartItems.indexWhere(
-            (item) => item['id'] == id,
-      );
+      final index = cartItems.indexWhere((item) => item['id'] == id);
 
       if (index != -1) {
         cartItems[index]['quantity']++;
@@ -123,30 +116,42 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
   }
 
   // Controllers สำหรับที่อยู่จัดส่ง
-  final TextEditingController _nameController =
-  TextEditingController(text: 'ธนกฤต วัฒนกุล');
-  final TextEditingController _phoneController =
-  TextEditingController(text: '081 234 5678');
-  final TextEditingController _addressController =
-  TextEditingController(text: '88/12 ซอยสุขุมวิท 55 ถนนสุขุมวิท');
-  final TextEditingController _subDistrictController =
-  TextEditingController(text: 'คลองตันเหนือ');
-  final TextEditingController _districtController =
-  TextEditingController(text: 'วัฒนา');
-  final TextEditingController _provinceController =
-  TextEditingController(text: 'กรุงเทพมหานคร');
-  final TextEditingController _zipController =
-  TextEditingController(text: '10110');
+  final TextEditingController _nameController = TextEditingController(
+    text: 'ธนกฤต วัฒนกุล',
+  );
+  final TextEditingController _phoneController = TextEditingController(
+    text: '081 234 5678',
+  );
+  final TextEditingController _addressController = TextEditingController(
+    text: '88/12 ซอยสุขุมวิท 55 ถนนสุขุมวิท',
+  );
+  final TextEditingController _subDistrictController = TextEditingController(
+    text: 'คลองตันเหนือ',
+  );
+  final TextEditingController _districtController = TextEditingController(
+    text: 'วัฒนา',
+  );
+  final TextEditingController _provinceController = TextEditingController(
+    text: 'กรุงเทพมหานคร',
+  );
+  final TextEditingController _zipController = TextEditingController(
+    text: '10110',
+  );
 
   bool isDefaultAddress = true;
-  int shippingFee = 100;
+  String _shippingMethod = 'standard';
+  String _paymentMethod = 'promptpay';
+
+  int get shippingFee => _shippingMethod == 'express' ? 200 : 100;
 
   // คำนวณราคารวม
   int get subtotal => cartItems.fold(
-      0, (sum, item) => sum + ((item['price'] as int) * (item['quantity'] as int)));
+    0,
+    (sum, item) => sum + ((item['price'] as int) * (item['quantity'] as int)),
+  );
   int get total => subtotal + shippingFee;
-  int get totalPairs => cartItems.fold(
-      0, (sum, item) => sum + (item['quantity'] as int));
+  int get totalPairs =>
+      cartItems.fold(0, (sum, item) => sum + (item['quantity'] as int));
 
   @override
   Widget build(BuildContext context) {
@@ -155,10 +160,7 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back,
-            color: Color(0xFFFF5500),
-          ),
+          icon: const Icon(Icons.arrow_back, color: Color(0xFFFF5500)),
           onPressed: () {
             Navigator.maybePop(context);
           },
@@ -245,39 +247,18 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
           );
         },
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xFF1A1A1A),
-        selectedItemColor: const Color(0xFFFF5500),
-        unselectedItemColor: Colors.grey,
-        currentIndex: 1, // เลือกหน้าตะกร้า
-        type: BottomNavigationBarType.fixed, //]lock bar
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const HomePage(),
-              ),
-            );
-          } else if (index == 2) {
-            // เพิ่ม: กดคอลเลกชัน -> ไปหน้าคอลเลกชัน
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const ShoeRackAndOrdersPage(),
-              ),
-            );
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'หน้าแรก'),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_bag), label: 'ตะกร้า'),
-          BottomNavigationBarItem(icon: Icon(Icons.collections_bookmark), label: 'คอลเลกชัน'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'โปรไฟล์'),
-        ],
+      bottomNavigationBar: AppBottomNavigationBar(
+        currentIndex: 1,
+        onTap: (index) => navigateToAppTab(
+          context,
+          index,
+          userId: CartAndCheckoutPage.currentUserId,
+          currentIndex: 1,
+        ),
       ),
     );
   }
+
   // 1. ส่วนรายการรองเท้าที่เลือกไว้
   Widget _buildCartSection() {
     return Column(
@@ -341,18 +322,25 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
                           child: Text(
                             item['name'],
                             style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 15),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         IconButton(
                           constraints: const BoxConstraints(),
                           padding: EdgeInsets.zero,
-                          icon: const Icon(Icons.delete_outline,
-                              color: Colors.grey, size: 20),
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.grey,
+                            size: 20,
+                          ),
                           onPressed: () {
                             setState(() {
-                              cartItems.removeWhere((i) => i['id'] == item['id']);
+                              cartItems.removeWhere(
+                                (i) => i['id'] == item['id'],
+                              );
                             });
                           },
                         ),
@@ -366,7 +354,9 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
                     Text(
                       '฿${item['price'].toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
                       style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                   ],
                 ),
@@ -420,8 +410,10 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
                         }
                       },
                     ),
-                    Text('${item['quantity']}',
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text(
+                      '${item['quantity']}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     IconButton(
                       icon: const Icon(Icons.add, size: 16),
                       onPressed: () {
@@ -432,12 +424,11 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
                 ),
               ),
             ],
-          )
+          ),
         ],
       ),
     );
   }
-
 
   // เพิ่ม: กด "ยืนยันคำสั่งซื้อ"
   Future<void> _confirmOrder() async {
@@ -461,21 +452,23 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
     try {
       final response = await http
           .post(
-        Uri.parse('$apiUrl/orders'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'user_id': CartAndCheckoutPage.currentUserId,
-          'total': orderTotal,
-          'items': items
-              .map((e) => {
-            'product_id': e['product_id'],
-            'name': e['name'],
-            'quantity': e['quantity'],
-            'price': e['price'],
-          })
-              .toList(),
-        }),
-      )
+            Uri.parse('$apiUrl/orders'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'user_id': CartAndCheckoutPage.currentUserId,
+              'total': orderTotal,
+              'items': items
+                  .map(
+                    (e) => {
+                      'product_id': e['product_id'],
+                      'name': e['name'],
+                      'quantity': e['quantity'],
+                      'price': e['price'],
+                    },
+                  )
+                  .toList(),
+            }),
+          )
           .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes));
@@ -496,6 +489,12 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
       items: items,
       total: orderTotal,
       orderNumber: orderId,
+      shippingMethod: _shippingMethod == 'express'
+          ? 'จัดส่งด่วน'
+          : 'จัดส่งมาตรฐาน',
+      paymentMethod: _paymentMethod == 'cod'
+          ? 'เก็บเงินปลายทาง'
+          : 'QR พร้อมเพย์ / PromptPay',
     );
 
     setState(() {
@@ -527,30 +526,28 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
         _districtController.text.trim().isEmpty ||
         _provinceController.text.trim().isEmpty ||
         _zipController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('กรุณากรอกข้อมูลให้ครบ'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('กรุณากรอกข้อมูลให้ครบ')));
       return;
     }
 
     try {
-      final response = await http.post(
-        Uri.parse('$apiUrl/addresses'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'name_lastname': _nameController.text.trim(),
-          'phone': _phoneController.text.trim(),
-          'address': _addressController.text.trim(),
-          'subdistrict': _subDistrictController.text.trim(),
-          'amphoe': _districtController.text.trim(),
-          'province': _provinceController.text.trim(),
-          'messenger_number': _zipController.text.trim(),
-        }),
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .post(
+            Uri.parse('$apiUrl/addresses'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'name_lastname': _nameController.text.trim(),
+              'phone': _phoneController.text.trim(),
+              'address': _addressController.text.trim(),
+              'subdistrict': _subDistrictController.text.trim(),
+              'amphoe': _districtController.text.trim(),
+              'province': _provinceController.text.trim(),
+              'messenger_number': _zipController.text.trim(),
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
 
       debugPrint('Address status: ${response.statusCode}');
       debugPrint('Address response: ${response.body}');
@@ -559,8 +556,7 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
 
       final data = jsonDecode(response.body);
 
-      if (response.statusCode == 200 &&
-          data['success'] == true) {
+      if (response.statusCode == 200 && data['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('บันทึกที่อยู่สำเร็จ'),
@@ -613,7 +609,6 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
             ),
           ),
 
-
           const SizedBox(height: 16),
 
           _buildTextField('ชื่อ-นามสกุล', _nameController),
@@ -628,17 +623,11 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
           Row(
             children: [
               Expanded(
-                child: _buildTextField(
-                  'ตำบล/แขวง',
-                  _subDistrictController,
-                ),
+                child: _buildTextField('ตำบล/แขวง', _subDistrictController),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildTextField(
-                  'อำเภอ/เขต',
-                  _districtController,
-                ),
+                child: _buildTextField('อำเภอ/เขต', _districtController),
               ),
             ],
           ),
@@ -647,19 +636,9 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
 
           Row(
             children: [
-              Expanded(
-                child: _buildTextField(
-                  'จังหวัด',
-                  _provinceController,
-                ),
-              ),
+              Expanded(child: _buildTextField('จังหวัด', _provinceController)),
               const SizedBox(width: 12),
-              Expanded(
-                child: _buildTextField(
-                  'รหัสไปรษณีย์',
-                  _zipController,
-                ),
-              ),
+              Expanded(child: _buildTextField('รหัสไปรษณีย์', _zipController)),
             ],
           ),
 
@@ -679,10 +658,7 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
               const Expanded(
                 child: Text(
                   'บันทึกเป็นที่อยู่เริ่มต้น • ประเทศไทย',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ),
             ],
@@ -690,7 +666,6 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
 
           // ปุ่มบันทึกข้อมูลที่เพิ่มเข้ามา
           const SizedBox(height: 16),
-
 
           SizedBox(
             width: double.infinity,
@@ -708,7 +683,6 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
               ),
             ),
           ),
-
         ],
       ),
     );
@@ -724,24 +698,22 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
           controller: controller,
 
           // สีข้อความที่พิมพ์ในช่อง
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-          ),
+          style: const TextStyle(color: Colors.white, fontSize: 14),
 
           cursorColor: const Color(0xFFFF5500),
 
           decoration: InputDecoration(
             // สี Placeholder ตอนช่องว่าง
-            hintStyle: const TextStyle(
-              color: Colors.white70,
-            ),
+            hintStyle: const TextStyle(color: Colors.white70),
 
             filled: true,
 
             // ปรับพื้นหลังให้สว่างขึ้นเล็กน้อย
             fillColor: const Color(0xFF252525),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 12,
+            ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: const BorderSide(color: Colors.white12),
@@ -770,37 +742,97 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
           ),
         ),
         const SizedBox(height: 12),
-        Container(
+        _buildSelectionCard(
+          key: const ValueKey('shipping-standard'),
+          selected: _shippingMethod == 'standard',
+          onTap: () => setState(() => _shippingMethod = 'standard'),
+          title: 'จัดส่งมาตรฐาน',
+          subtitle: '2–4 วันทำการ • มีเลขติดตามพัสดุ',
+          trailing: '฿100',
+        ),
+        const SizedBox(height: 8),
+        _buildSelectionCard(
+          key: const ValueKey('shipping-express'),
+          selected: _shippingMethod == 'express',
+          onTap: () => setState(() => _shippingMethod = 'express'),
+          title: 'จัดส่งด่วน',
+          subtitle: '1–2 วันทำการ • มีเลขติดตามพัสดุ',
+          trailing: '฿200',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSelectionCard({
+    required Key key,
+    required bool selected,
+    required VoidCallback onTap,
+    required String title,
+    required String subtitle,
+    required String trailing,
+    IconData? trailingIcon,
+  }) {
+    const accent = Color(0xFFFF5500);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: key,
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: const Color(0xFF1E1E1E),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFFF5500), width: 1.5),
+            border: Border.all(
+              color: selected ? accent : Colors.white12,
+              width: selected ? 1.5 : 1,
+            ),
           ),
           child: Row(
             children: [
-              const Icon(Icons.radio_button_checked,
-                  color: Color(0xFFFF5500), size: 20),
+              Icon(
+                selected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+                color: selected ? accent : Colors.white54,
+                size: 20,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text('จัดส่งมาตรฐาน',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 14)),
-                    SizedBox(height: 2),
-                    Text('2–4 วันทำการ • มีเลขติดตามพัสดุ',
-                        style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
                   ],
                 ),
               ),
-              const Text('฿100',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              if (trailingIcon != null) ...[
+                Icon(trailingIcon, color: Colors.white, size: 22),
+                const SizedBox(width: 8),
+              ],
+              Text(
+                trailing,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
             ],
           ),
         ),
-      ],
+      ),
     );
   }
 
@@ -818,30 +850,30 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
           ),
         ),
         const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E1E1E),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFFF5500), width: 1.5),
-          ),
-          child: Row(
-            children: const [
-              Icon(Icons.radio_button_checked,
-                  color: Color(0xFFFF5500), size: 20),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text('QR พร้อมเพย์ / PromptPay',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 14)),
-              ),
-              Icon(Icons.qr_code_scanner, color: Colors.white, size: 22),
-            ],
-          ),
+        _buildSelectionCard(
+          key: const ValueKey('payment-promptpay'),
+          selected: _paymentMethod == 'promptpay',
+          onTap: () => setState(() => _paymentMethod = 'promptpay'),
+          title: 'QR พร้อมเพย์ / PromptPay',
+          subtitle: 'ชำระเงินผ่านแอปธนาคาร',
+          trailing: '',
+          trailingIcon: Icons.qr_code_scanner,
+        ),
+        const SizedBox(height: 8),
+        _buildSelectionCard(
+          key: const ValueKey('payment-cod'),
+          selected: _paymentMethod == 'cod',
+          onTap: () => setState(() => _paymentMethod = 'cod'),
+          title: 'เก็บเงินปลายทาง',
+          subtitle: 'ชำระเงินเมื่อได้รับสินค้า',
+          trailing: '',
+          trailingIcon: Icons.payments_outlined,
         ),
         const SizedBox(height: 8),
         Text(
-          'รับ QR หลังยืนยันคำสั่งซื้อ กรุณาชำระภายใน 30 นาที สถานะคำสั่งซื้อจะเป็น Pending ระหว่างรอชำระเงิน',
+          _paymentMethod == 'promptpay'
+              ? 'รับ QR หลังยืนยันคำสั่งซื้อ กรุณาชำระภายใน 30 นาที'
+              : 'ชำระเงินกับพนักงานจัดส่งเมื่อได้รับสินค้า',
           style: TextStyle(color: Colors.grey[500], fontSize: 11, height: 1.4),
         ),
       ],
@@ -859,44 +891,57 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('สรุปคำสั่งซื้อ',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const Text(
+            'สรุปคำสั่งซื้อ',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('ราคารองเท้า ($totalPairs คู่)',
-                  style: const TextStyle(color: Colors.grey, fontSize: 13)),
               Text(
-                  '฿${subtotal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
-                  style: const TextStyle(fontSize: 14)),
+                'ราคารองเท้า ($totalPairs คู่)',
+                style: const TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+              Text(
+                '฿${subtotal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
+                style: const TextStyle(fontSize: 14),
+              ),
             ],
           ),
           const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text('ค่าจัดส่ง',
-                  style: TextStyle(color: Colors.grey, fontSize: 13)),
-              Text('฿100', style: TextStyle(fontSize: 14)),
+            children: [
+              const Text(
+                'ค่าจัดส่ง',
+                style: TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+              Text('฿$shippingFee', style: const TextStyle(fontSize: 14)),
             ],
           ),
           const Divider(color: Colors.white12, height: 28),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('ยอดชำระทั้งหมด',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const Text(
+                'ยอดชำระทั้งหมด',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
               Text(
                 '฿${total.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
                 style: const TextStyle(
-                    fontSize: 22, fontWeight: FontWeight.bold),
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 6),
-          Text('ราคารวมภาษีแล้ว • ไม่มีค่าธรรมเนียมเพิ่มเติม',
-              style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+          Text(
+            'ราคารวมภาษีแล้ว • ไม่มีค่าธรรมเนียมเพิ่มเติม',
+            style: TextStyle(color: Colors.grey[500], fontSize: 11),
+          ),
         ],
       ),
     );
@@ -917,13 +962,18 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            icon: const Icon(Icons.arrow_forward, color: Colors.white, size: 20),
+            icon: const Icon(
+              Icons.arrow_forward,
+              color: Colors.white,
+              size: 20,
+            ),
             label: Text(
               'ยืนยันคำสั่งซื้อ • ฿${total.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
               style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16),
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
             ),
           ),
         ),
