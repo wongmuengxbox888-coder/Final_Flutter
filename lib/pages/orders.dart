@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../main.dart';
+import 'collection.dart'; // เพิ่ม: หน้าคอลเลกชัน (เก็บคำสั่งซื้อที่ยืนยันแล้ว)
 
 const String apiUrl = 'http://127.0.0.1:8000';
 
@@ -26,35 +27,100 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
 class CartAndCheckoutPage extends StatefulWidget {
-  const CartAndCheckoutPage({super.key});
+  final Map<String, dynamic>? product;
+
+  const CartAndCheckoutPage({
+    super.key,
+    this.product,
+  });
+
+  // ===== เพิ่ม: รายการสินค้าในตะกร้า (static = ใช้ร่วมกันทุกหน้า) =====
+  static final List<Map<String, dynamic>> cartItems = [];
+
+  // เพิ่ม: id ผู้ใช้ที่ล็อกอิน (main.dart เป็นคนตั้งค่าให้) ใช้ตอนบันทึกคำสั่งซื้อ
+  static int? currentUserId;
+
+  // เพิ่ม: ตัวนับ id ให้สินค้าแต่ละรายการ (ใช้ตอนกดลบ)
+  static int _nextId = 1;
+
+  // ===== เพิ่ม: ฟังก์ชันที่หน้า feature.dart เรียกตอนกด "เพิ่มลงตะกร้า" / "ซื้อเลย" =====
+  static void addProduct(Map<String, dynamic> product) {
+    // แปลงไซส์ให้ตรงกับ dropdown ในหน้านี้ เช่น '9' -> 'US 9'
+    final rawSize = (product['size'] ?? '9').toString();
+    final size = rawSize.startsWith('US') ? rawSize : 'US $rawSize';
+
+    // ถ้ามีรองเท้าชื่อเดียวกัน + ไซส์เดียวกันอยู่แล้ว ให้บวกจำนวนเพิ่ม
+    final index = cartItems.indexWhere(
+          (item) => item['name'] == product['name'] && item['size'] == size,
+    );
+
+    if (index != -1) {
+      cartItems[index]['quantity'] =
+          (cartItems[index]['quantity'] as int) +
+              ((product['quantity'] ?? 1) as int);
+    } else {
+      // ถ้ายังไม่มี ให้เพิ่มเป็นรายการใหม่ (ใส่ field ที่หน้านี้ต้องใช้ให้ครบ)
+      cartItems.add({
+        'id': _nextId++,
+        'product_id': product['product_id'], // id ในตาราง products
+        'name': product['name'],
+        'subtitle': '',
+        'price': product['price'],
+        'size': size,
+        'quantity': product['quantity'] ?? 1,
+        'image': product['image'] ?? '',
+      });
+    }
+  }
 
   @override
   State<CartAndCheckoutPage> createState() => _CartAndCheckoutPageState();
 }
 
 class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
+  // เพิ่ม: ทางลัดเรียกรายการตะกร้า (โค้ดเดิมด้านล่างใช้ชื่อ cartItems ได้เหมือนเดิม)
+  List<Map<String, dynamic>> get cartItems => CartAndCheckoutPage.cartItems;
+
+  bool _submitting = false; // เพิ่ม: กันกดยืนยันซ้ำระหว่างรอเซิร์ฟเวอร์
+
+  @override
+  void initState() {
+    super.initState();
+    // เพิ่ม: ถ้ามีสินค้าส่งมาตอนเปิดหน้านี้ ให้ใส่ตะกร้า
+    if (widget.product != null) {
+      CartAndCheckoutPage.addProduct(widget.product!);
+    }
+  }
+
   // ข้อมูลรายการสินค้าในตะกร้า
-  List<Map<String, dynamic>> cartItems = [
-    {
-      'id': 1,
-      'name': 'Air Jordan 1 High OG',
-      'subtitle': 'Lost & Found • 2022',
-      'price': 14900,
-      'size': 'US 9',
-      'quantity': 1,
-      'image': 'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=800',
-    },
-    {
-      'id': 2,
-      'name': 'Dunk Low SP',
-      'subtitle': 'Syracuse • 2020',
-      'price': 9900,
-      'size': 'US 8.5',
-      'quantity': 1,
-      'image': 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=800',
-    },
-  ];
+  void addToCart({
+    required int id,
+    required String name,
+    required int price,
+    required String? imageUrl,
+  }) {
+    setState(() {
+      final index = cartItems.indexWhere(
+            (item) => item['id'] == id,
+      );
+
+      if (index != -1) {
+        cartItems[index]['quantity']++;
+      } else {
+        cartItems.add({
+          'id': id,
+          'name': name,
+          'subtitle': '',
+          'price': price,
+          'size': 'US 9',
+          'quantity': 1,
+          'image': imageUrl ?? '',
+        });
+      }
+    });
+  }
 
   // Controllers สำหรับที่อยู่จัดส่ง
   final TextEditingController _nameController =
@@ -193,6 +259,14 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
                 builder: (context) => const HomePage(),
               ),
             );
+          } else if (index == 2) {
+            // เพิ่ม: กดคอลเลกชัน -> ไปหน้าคอลเลกชัน
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ShoeRackAndOrdersPage(),
+              ),
+            );
           }
         },
         items: const [
@@ -204,7 +278,6 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
       ),
     );
   }
-
   // 1. ส่วนรายการรองเท้าที่เลือกไว้
   Widget _buildCartSection() {
     return Column(
@@ -366,6 +439,86 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
   }
 
 
+  // เพิ่ม: กด "ยืนยันคำสั่งซื้อ"
+  Future<void> _confirmOrder() async {
+    if (_submitting) return;
+
+    if (cartItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('กรุณาเพิ่มสินค้าลงตะกร้าก่อน')),
+      );
+      return;
+    }
+
+    setState(() => _submitting = true);
+
+    final items = cartItems.map((e) => Map<String, dynamic>.from(e)).toList();
+    final orderTotal = total;
+
+    int? orderId;
+    String? warning;
+
+    try {
+      final response = await http
+          .post(
+        Uri.parse('$apiUrl/orders'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'user_id': CartAndCheckoutPage.currentUserId,
+          'total': orderTotal,
+          'items': items
+              .map((e) => {
+            'product_id': e['product_id'],
+            'name': e['name'],
+            'quantity': e['quantity'],
+            'price': e['price'],
+          })
+              .toList(),
+        }),
+      )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      if (response.statusCode == 200 && data['success'] == true) {
+        orderId = (data['order_id'] as num?)?.toInt();
+      } else {
+        warning = data['detail']?.toString() ?? 'บันทึกคำสั่งซื้อไม่สำเร็จ';
+      }
+    } catch (e) {
+      debugPrint('CONFIRM ORDER ERROR: $e');
+      warning = 'เชื่อมต่อ FastAPI ไม่ได้';
+    }
+
+    if (!mounted) return;
+
+    // เพิ่มเข้าคอลเลกชัน + ล้างตะกร้า (ทำเสมอ)
+    ShoeRackAndOrdersPage.addConfirmedOrder(
+      items: items,
+      total: orderTotal,
+      orderNumber: orderId,
+    );
+
+    setState(() {
+      cartItems.clear();
+      _submitting = false;
+    });
+
+    if (warning != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เพิ่มในคอลเลกชันแล้ว แต่ฐานข้อมูล: $warning'),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 6),
+        ),
+      );
+    }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const ShoeRackAndOrdersPage()),
+    );
+  }
+
   Future<void> _saveAddress() async {
     if (_nameController.text.trim().isEmpty ||
         _phoneController.text.trim().isEmpty ||
@@ -451,14 +604,14 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-        const Text(
-        'ที่อยู่จัดส่ง',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFFFF5500),
-        ),
-      ),
+          const Text(
+            'ที่อยู่จัดส่ง',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFFF5500),
+            ),
+          ),
 
 
           const SizedBox(height: 16),
@@ -756,7 +909,7 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: () {},
+            onPressed: _confirmOrder, // เพิ่ม: ยืนยันแล้วไปหน้าคอลเลกชัน
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFFF5500),
               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -784,18 +937,3 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
     );
   }
 }
-
-// จอซ้าย ขนาด desktop
-// _buildCartSection()
-//
-// _buildAddressSection()
-
-
-///ฝั่งซ้าย
-///_buildShippingSection()
-//
-// _buildPaymentSection()
-//
-// _buildOrderSummarySection()
-//
-// _buildCheckoutButton()
