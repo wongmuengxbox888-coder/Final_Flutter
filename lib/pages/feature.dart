@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../main.dart';
 import 'orders.dart';
+import '../widgets/app_bottom_navigation_bar.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final int? productId; // id จากฐานข้อมูล (ยังไม่ได้ใช้ แต่เก็บไว้ได้)
@@ -22,7 +24,6 @@ class ProductDetailPage extends StatefulWidget {
 class _ProductDetailPageState extends State<ProductDetailPage> {
   String selectedSize = '9'; // ไซส์ที่เลือกอยู่ตอนนี้
 
-
   final List<String> sizes = ['8', '8.5', '9', '9.5', '10'];
   final List<String> disabledSizes = ['8', '9.5'];
 
@@ -30,18 +31,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   final List<Map<String, String>> gallery = [
     {
       'label': 'ด้านข้าง',
-      'url':
-      'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=800',
+      'url': 'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=800',
     },
     {
       'label': 'ด้านหลัง',
       'url':
-      'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=800',
+          'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=800',
     },
     {
       'label': 'พื้นรองเท้า',
       'url':
-      'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=800',
+          'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=800',
     },
   ];
 
@@ -50,9 +50,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   // ราคาเป็นตัวเลข: ตัดทุกอย่างที่ไม่ใช่ตัวเลข/จุดทิ้ง (เช่น ฿) แล้วปัดเป็นจำนวนเต็ม
   int get productPrice =>
-      double.tryParse(widget.price.replaceAll(RegExp(r'[^0-9.]'), ''))
-          ?.round() ??
-          0;
+      double.tryParse(
+        widget.price.replaceAll(RegExp(r'[^0-9.]'), ''),
+      )?.round() ??
+      0;
 
   // รูปหลัก: ใช้รูปจาก API ถ้ามี ไม่งั้นใช้รูปแรกของ gallery
   String get mainImage {
@@ -92,9 +93,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const CartAndCheckoutPage(),
-      ),
+      MaterialPageRoute(builder: (context) => const CartAndCheckoutPage()),
     );
   }
 
@@ -125,7 +124,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       // LayoutBuilder ใช้ดูความกว้างหน้าจอ เพื่อเลือกเลย์เอาต์
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final isDesktop = constraints.maxWidth > 800; // กว้างกว่า 800 = จอใหญ่
+          final isDesktop =
+              constraints.maxWidth > 800; // กว้างกว่า 800 = จอใหญ่
 
           // จอใหญ่: แบ่งซ้าย (รูป) / ขวา (รายละเอียด)
           if (isDesktop) {
@@ -161,6 +161,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             ),
           );
         },
+      ),
+      bottomNavigationBar: AppBottomNavigationBar(
+        currentIndex: 0,
+        onTap: (index) => navigateToAppTab(
+          context,
+          index,
+          userId: CartAndCheckoutPage.currentUserId,
+        ),
       ),
     );
   }
@@ -231,7 +239,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-
         const Text(
           'JORDAN / REIMAGINED COLLECTION',
           style: TextStyle(color: Colors.grey, fontSize: 12),
@@ -240,10 +247,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         // ชื่อรองเท้าจาก API
         Text(
           productName,
-          style: const TextStyle(
-            fontSize: 23,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 23, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         const Text(
@@ -280,10 +284,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   onTap: isDisabled
                       ? null
                       : () {
-                    setState(() {
-                      selectedSize = size;
-                    });
-                  },
+                          setState(() {
+                            selectedSize = size;
+                          });
+                        },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
@@ -327,7 +331,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
         const Text(
           'Air Jordan 1 สี Chicago เป็นหนึ่งในสีรองเท้าที่นักสะสมจดจำ '
-              'รุ่น Lost & Found ถ่ายทอดกลิ่นอายวินเทจด้วยรายละเอียดที่ได้รับแรงบันดาลใจจากรองเท้ายุคเก่า',
+          'รุ่น Lost & Found ถ่ายทอดกลิ่นอายวินเทจด้วยรายละเอียดที่ได้รับแรงบันดาลใจจากรองเท้ายุคเก่า',
           style: TextStyle(color: Colors.white70, height: 1.6),
         ),
         const SizedBox(height: 24),

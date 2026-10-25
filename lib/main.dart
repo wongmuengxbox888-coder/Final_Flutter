@@ -6,7 +6,7 @@ import 'pages/profile.dart'; // หน้าโปรไฟล์ (ตอนน�
 import 'pages/orders.dart'; // หน้าตะกร้า (CartAndCheckoutPage)
 import 'pages/feature.dart'; // หน้ารายละเอียดสินค้า
 import 'pages/collection.dart'; // หน้าคอลเลกชัน
-
+import 'widgets/app_bottom_navigation_bar.dart';
 
 const String kApiBaseUrl = 'http://127.0.0.1:8000';
 const String kProductsPath = '/products';
@@ -60,10 +60,8 @@ class ShoeApi {
 
     for (final item in body) {
       if (item is String) {
-
         shoes.add(Shoe(item));
       } else if (item is Map) {
-
         String? name;
         for (final k in _nameKeys) {
           if (item[k] != null) {
@@ -82,11 +80,9 @@ class ShoeApi {
             ? raw.toString()
             : null;
 
-
         final id = item['id'] is int
             ? item['id'] as int
             : int.tryParse('${item['id']}');
-
 
         shoes.add(Shoe(name, p == null ? null : '฿$p', img, id));
       }
@@ -112,7 +108,8 @@ class RarePairApp extends StatelessWidget {
         scaffoldBackgroundColor: AppColors.bg, // พื้นหลังทุกหน้า
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.accent,
-          brightness: Brightness.dark, // ธีมมืด ทำให้ตัวหนังสือหน้าอื่นเป็นสีขาวอัตโนมัติ
+          brightness: Brightness
+              .dark, // ธีมมืด ทำให้ตัวหนังสือหน้าอื่นเป็นสีขาวอัตโนมัติ
           surface: AppColors.bg,
         ),
       ),
@@ -121,14 +118,39 @@ class RarePairApp extends StatelessWidget {
   }
 }
 
+void navigateToAppTab(
+  BuildContext context,
+  int index, {
+  int? userId,
+  int? currentIndex,
+}) {
+  if (index == currentIndex) return;
+
+  final activeUserId = userId ?? CartAndCheckoutPage.currentUserId;
+  final Widget page;
+  switch (index) {
+    case 0:
+      page = HomePage(userId: activeUserId);
+    case 1:
+      page = const CartAndCheckoutPage();
+    case 2:
+      page = const ShoeRackAndOrdersPage();
+    case 3:
+      page = activeUserId == null
+          ? const LoginPage()
+          : ProfilePage(userId: activeUserId);
+    default:
+      throw RangeError.index(index, const [0, 1, 2, 3], 'index');
+  }
+
+  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => page));
+}
+
 // homepage
 class HomePage extends StatefulWidget {
   final int? userId;
 
-  const HomePage({
-    super.key,
-    this.userId,
-  });
+  const HomePage({super.key, this.userId});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -143,14 +165,11 @@ class _HomePageState extends State<HomePage> {
   bool _loading = false;
   String? _error;
   int _selectedChip = 0;
-  int _navIndex = 0;
-
-
   static const _chips = [
     'ทั้งหมด',
     'Vintage',
     'Limited Edition',
-    'Collaboration'
+    'Collaboration',
   ];
 
   // อยู่ในโหมดค้นหา = มีข้อความในช่องค้นหา
@@ -189,7 +208,6 @@ class _HomePageState extends State<HomePage> {
 
     try {
       final data = await ShoeApi.fetchAll();
-
 
       for (var i = 0; i < data.length; i++) {
         final shoe = data[i];
@@ -301,7 +319,15 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-            _bottomNav(), // แถบเมนูล่าง
+            AppBottomNavigationBar(
+              currentIndex: 0,
+              onTap: (index) => navigateToAppTab(
+                context,
+                index,
+                userId: widget.userId,
+                currentIndex: 0,
+              ),
+            ),
           ],
         ),
       ),
@@ -335,9 +361,7 @@ class _HomePageState extends State<HomePage> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const LoginPage(),
-                ),
+                MaterialPageRoute(builder: (context) => const LoginPage()),
               );
             },
             child: Transform.translate(
@@ -370,7 +394,9 @@ class _HomePageState extends State<HomePage> {
       children: [
         Expanded(
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180), // แอนิเมชันเปลี่ยนสีขอบ
+            duration: const Duration(
+              milliseconds: 180,
+            ), // แอนิเมชันเปลี่ยนสีขอบ
             height: 50,
             padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
@@ -398,10 +424,7 @@ class _HomePageState extends State<HomePage> {
                     textInputAction: TextInputAction.search,
                     onSubmitted: _filter,
                     cursorColor: AppColors.accent,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: AppColors.ink,
-                    ),
+                    style: const TextStyle(fontSize: 15, color: AppColors.ink),
                     decoration: InputDecoration(
                       border: InputBorder.none,
                       isDense: true,
@@ -481,10 +504,7 @@ class _HomePageState extends State<HomePage> {
             Text(
               _error!,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.ink,
-                fontSize: 13,
-              ),
+              style: const TextStyle(color: AppColors.ink, fontSize: 13),
             ),
             const SizedBox(height: 8),
             TextButton(
@@ -522,10 +542,7 @@ class _HomePageState extends State<HomePage> {
           padding: const EdgeInsets.only(bottom: 8),
           child: Text(
             'พบ ${_results.length} รายการ',
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.inkSoft,
-            ),
+            style: const TextStyle(fontSize: 12, color: AppColors.inkSoft),
           ),
         ),
         // กล่องรายการผลลัพธ์
@@ -537,12 +554,11 @@ class _HomePageState extends State<HomePage> {
           ),
           child: ListView.separated(
             shrinkWrap: true, // ให้สูงเท่าเนื้อหา
-            physics: const NeverScrollableScrollPhysics(), // ใช้การเลื่อนของ ListView ด้านนอก
+            physics:
+                const NeverScrollableScrollPhysics(), // ใช้การเลื่อนของ ListView ด้านนอก
             itemCount: _results.length,
-            separatorBuilder: (_, __) => const Divider(
-              height: 1,
-              color: AppColors.line,
-            ),
+            separatorBuilder: (_, __) =>
+                const Divider(height: 1, color: AppColors.line),
             itemBuilder: (_, i) => _resultTile(_results[i], q),
           ),
         ),
@@ -571,19 +587,19 @@ class _HomePageState extends State<HomePage> {
                 color: AppColors.imageBg,
                 child: shoe.imageUrl == null
                     ? const Icon(
-                  Icons.directions_run_rounded,
-                  color: AppColors.inkSoft,
-                  size: 22,
-                )
+                        Icons.directions_run_rounded,
+                        color: AppColors.inkSoft,
+                        size: 22,
+                      )
                     : Image.network(
-                  shoe.imageUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Icon(
-                    Icons.directions_run_rounded,
-                    color: AppColors.inkSoft,
-                    size: 22,
-                  ),
-                ),
+                        shoe.imageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.directions_run_rounded,
+                          color: AppColors.inkSoft,
+                          size: 22,
+                        ),
+                      ),
               ),
             ),
             const SizedBox(width: 12),
@@ -658,16 +674,11 @@ class _HomePageState extends State<HomePage> {
         return GestureDetector(
           onTap: () => setState(() => _selectedChip = i), // กด = เลือก chip นี้
           child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 8,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: sel ? Colors.black : AppColors.inkSoft,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: sel ? AppColors.ink : AppColors.line,
-              ),
+              border: Border.all(color: sel ? AppColors.ink : AppColors.line),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -696,11 +707,11 @@ class _HomePageState extends State<HomePage> {
   // แสดงรองเท้า ใช้ซ้ำทุกการ์ด
   // ไม่มีลิงก์หรือโหลดรูปไม่ได้ จะโชว์ไอคอนคนวิ่งแทน
   Widget _shoeImage(
-      String? url, {
-        double? height,
-        double iconSize = 40,
-        BoxFit fit = BoxFit.cover,
-      }) {
+    String? url, {
+    double? height,
+    double iconSize = 40,
+    BoxFit fit = BoxFit.cover,
+  }) {
     // widget สำรองที่ใช้เมื่อไม่มีรูป
     final fallback = Center(
       child: Icon(
@@ -716,12 +727,12 @@ class _HomePageState extends State<HomePage> {
       child: url == null || url.isEmpty
           ? fallback
           : Image.network(
-        url,
-        fit: fit,
-        errorBuilder: (_, __, ___) => fallback, // โหลดพลาด = ไอคอน
-        loadingBuilder: (_, child, progress) =>
-        progress == null ? child : fallback, // ระหว่างโหลด = ไอคอน
-      ),
+              url,
+              fit: fit,
+              errorBuilder: (_, __, ___) => fallback, // โหลดพลาด = ไอคอน
+              loadingBuilder: (_, child, progress) =>
+                  progress == null ? child : fallback, // ระหว่างโหลด = ไอคอน
+            ),
     );
   }
 
@@ -759,10 +770,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 Text(
                   '18–24 ต.ค. 2026',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: AppColors.inkSoft,
-                  ),
+                  style: TextStyle(fontSize: 11, color: AppColors.inkSoft),
                 ),
               ],
             ),
@@ -816,11 +824,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     SizedBox(width: 6),
-                    Icon(
-                      Icons.arrow_forward,
-                      size: 18,
-                      color: AppColors.ink,
-                    ),
+                    Icon(Icons.arrow_forward, size: 18, color: AppColors.ink),
                   ],
                 ),
               ],
@@ -850,10 +854,7 @@ class _HomePageState extends State<HomePage> {
           onTap: _all.isEmpty ? null : () => _openFeature(_all.first),
           child: Text(
             action,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.accent,
-            ),
+            style: const TextStyle(fontSize: 12, color: AppColors.accent),
           ),
         ),
       ],
@@ -951,7 +952,6 @@ class _HomePageState extends State<HomePage> {
 
   // story card bottom web
   Widget _storyCard() {
-
     final shoe = _all.length > 10
         ? _all[10]
         : (_all.isNotEmpty ? _all.first : null);
@@ -991,10 +991,7 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   const Text(
                     'HERITAGE / อ่าน 3 นาที',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: AppColors.gold,
-                    ),
+                    style: TextStyle(fontSize: 11, color: AppColors.gold),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -1010,10 +1007,7 @@ class _HomePageState extends State<HomePage> {
                   const SizedBox(height: 4),
                   const Text(
                     'ทำไมรองเท้าคู่นี้ถึงน่าสนใจ',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.inkSoft,
-                    ),
+                    style: TextStyle(fontSize: 12, color: AppColors.inkSoft),
                   ),
                   const SizedBox(height: 8),
                   const Text(
@@ -1029,101 +1023,6 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  // tabbar
-  Widget _bottomNav() {
-    // แต่ละแท็บ = [ไอคอนปกติ, ไอคอนตอนเลือก, ชื่อ]
-    const tabs = [
-      [Icons.home_outlined, Icons.home_rounded, 'หน้าแรก'],
-      [Icons.shopping_bag_outlined, Icons.shopping_bag, 'ตะกร้า'],
-      [
-        Icons.collections_bookmark_outlined,
-        Icons.collections_bookmark,
-        'คอลเลกชัน'
-      ],
-      [Icons.person_outline, Icons.person, 'โปรไฟล์'],
-    ];
-
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(
-          top: BorderSide(color: AppColors.line),
-        ),
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: List.generate(tabs.length, (i) {
-          final sel = i == _navIndex; // แท็บนี้ถูกเลือกไหม
-
-          return GestureDetector(
-            onTap: () {
-              setState(() => _navIndex = i);
-
-              if (i == 1) {
-                // แท็บตะกร้า -> เปิดหน้าตะกร้า
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const CartAndCheckoutPage(),
-                  ),
-                );
-              } else if (i == 2) {
-                // แท็บคอลเลกชัน -> เปิดหน้าคอลเลกชัน
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ShoeRackAndOrdersPage(),
-                  ),
-                );
-              } else if (i == 3) {
-                // แท็บโปรไฟล์ -> ไปหน้า Login
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const LoginPage(),
-                  ),
-                );
-              }
-            },
-            behavior: HitTestBehavior.opaque, // กดโดนทั้งพื้นที่แม้เป็นที่ว่าง
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // ไอคอน + พื้นส้มอ่อนถ้าเลือกอยู่
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: sel ? AppColors.accentSoft : Colors.transparent,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    (sel ? tabs[i][1] : tabs[i][0]) as IconData,
-                    size: 26,
-                    color: sel ? AppColors.accent : AppColors.inkSoft,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                // ชื่อแท็บ
-                Text(
-                  tabs[i][2] as String,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: sel ? FontWeight.w700 : FontWeight.w400,
-                    color: sel ? AppColors.accent : AppColors.inkSoft,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }),
       ),
     );
   }

@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http; // ใช้ส่ง Request ไปยัง API
 import 'profile.dart';
+import '../main.dart';
+import 'orders.dart';
+import '../widgets/app_bottom_navigation_bar.dart';
 
 // URL ของ FastAPI ที่ทำงานบนเครื่องเดียวกับ Flutter Web
 // ต้องแน่ใจว่า FastAPI เปิดอยู่ที่ port 8000
@@ -43,20 +46,16 @@ class _LoginPageState extends State<LoginPage> {
     // ตรวจสอบว่ากรอกข้อมูลครบหรือไม่
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('กรุณากรอกอีเมลและรหัสผ่าน'),
-        ),
+        const SnackBar(content: Text('กรุณากรอกอีเมลและรหัสผ่าน')),
       );
       return;
     }
 
     // ตรวจสอบรูปแบบอีเมลเบื้องต้น
     if (!email.contains('@') || !email.contains('.')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('กรุณากรอกอีเมลให้ถูกต้อง'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('กรุณากรอกอีเมลให้ถูกต้อง')));
       return;
     }
 
@@ -69,15 +68,10 @@ class _LoginPageState extends State<LoginPage> {
       // ส่งอีเมลและรหัสผ่านไปให้ FastAPI ตรวจสอบ
       final response = await http
           .post(
-        Uri.parse('$apiUrl/login'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
-      )
+            Uri.parse('$apiUrl/login'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email, 'password': password}),
+          )
           .timeout(const Duration(seconds: 15));
 
       // แสดงผลใน Debug Console เพื่อใช้ตรวจสอบปัญหา
@@ -92,16 +86,12 @@ class _LoginPageState extends State<LoginPage> {
         final data = jsonDecode(response.body);
 
         // อ่าน user_id ที่ FastAPI ส่งกลับมา
-        final userId = int.tryParse(
-          data['user_id'].toString(),
-        );
+        final userId = int.tryParse(data['user_id'].toString());
 
         // ถ้า API ไม่ได้ส่ง user_id ที่ถูกต้อง ให้แจ้งข้อผิดพลาด
         if (userId == null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('ไม่พบรหัสผู้ใช้จากเซิร์ฟเวอร์'),
-            ),
+            const SnackBar(content: Text('ไม่พบรหัสผู้ใช้จากเซิร์ฟเวอร์')),
           );
           return;
         }
@@ -115,18 +105,15 @@ class _LoginPageState extends State<LoginPage> {
         );
 
         // รอให้ผู้ใช้อ่านข้อความก่อนเปลี่ยนหน้า
-        await Future.delayed(
-          const Duration(milliseconds: 500),
-        );
+        await Future.delayed(const Duration(milliseconds: 500));
 
         if (!mounted) return;
 
         // เปิดหน้าโปรไฟล์และส่ง user_id ไปด้วย
+        CartAndCheckoutPage.currentUserId = userId;
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (_) => ProfilePage(userId: userId),
-          ),
+          MaterialPageRoute(builder: (_) => ProfilePage(userId: userId)),
         );
       } else {
         // ถ้า API แจ้งข้อผิดพลาด เช่น รหัสผ่านไม่ถูกต้อง
@@ -141,10 +128,7 @@ class _LoginPageState extends State<LoginPage> {
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(message), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
@@ -154,9 +138,7 @@ class _LoginPageState extends State<LoginPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบ FastAPI',
-            ),
+            content: Text('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบ FastAPI'),
             backgroundColor: Colors.red,
           ),
         );
@@ -213,10 +195,7 @@ class _LoginPageState extends State<LoginPage> {
 
                 const Text(
                   'Sign in to discover your next pair.',
-                  style: TextStyle(
-                    color: Colors.white54,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.white54, fontSize: 14),
                 ),
 
                 const SizedBox(height: 35),
@@ -236,13 +215,9 @@ class _LoginPageState extends State<LoginPage> {
                   autofillHints: const [AutofillHints.email],
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 18,
-                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 18),
                     hintText: 'Enter your email',
-                    hintStyle: const TextStyle(
-                      color: Colors.white38,
-                    ),
+                    hintStyle: const TextStyle(color: Colors.white38),
                     prefixIcon: const Icon(
                       Icons.email_outlined,
                       color: Colors.white54,
@@ -259,10 +234,7 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 30),
 
                 // 4. ช่องกรอกรหัสผ่าน
-                const Text(
-                  'Password',
-                  style: TextStyle(color: Colors.white70),
-                ),
+                const Text('Password', style: TextStyle(color: Colors.white70)),
 
                 const SizedBox(height: 10),
 
@@ -277,13 +249,9 @@ class _LoginPageState extends State<LoginPage> {
                   },
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 18,
-                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 18),
                     hintText: 'Enter your password',
-                    hintStyle: const TextStyle(
-                      color: Colors.white38,
-                    ),
+                    hintStyle: const TextStyle(color: Colors.white38),
                     prefixIcon: const Icon(
                       Icons.lock_outline,
                       color: Colors.white54,
@@ -292,9 +260,7 @@ class _LoginPageState extends State<LoginPage> {
                     // ปุ่มแสดงหรือซ่อนรหัสผ่าน
                     suffixIcon: IconButton(
                       icon: Icon(
-                        hidePassword
-                            ? Icons.visibility_off
-                            : Icons.visibility,
+                        hidePassword ? Icons.visibility_off : Icons.visibility,
                         color: Colors.white54,
                       ),
                       onPressed: () {
@@ -322,9 +288,7 @@ class _LoginPageState extends State<LoginPage> {
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text(
-                            'ระบบลืมรหัสผ่านยังไม่พร้อมใช้งาน',
-                          ),
+                          content: Text('ระบบลืมรหัสผ่านยังไม่พร้อมใช้งาน'),
                         ),
                       );
                     },
@@ -347,9 +311,7 @@ class _LoginPageState extends State<LoginPage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: orange,
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor: orange.withValues(
-                        alpha: 0.6,
-                      ),
+                      disabledBackgroundColor: orange.withValues(alpha: 0.6),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -358,21 +320,21 @@ class _LoginPageState extends State<LoginPage> {
                     // แสดงวงกลมหมุนระหว่างรอ API
                     child: isLoading
                         ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
                         : const Text(
-                      'LOG IN',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1,
-                      ),
-                    ),
+                            'LOG IN',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1,
+                            ),
+                          ),
                   ),
                 ),
 
@@ -390,9 +352,7 @@ class _LoginPageState extends State<LoginPage> {
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text(
-                              'ระบบสมัครสมาชิกยังไม่พร้อมใช้งาน',
-                            ),
+                            content: Text('ระบบสมัครสมาชิกยังไม่พร้อมใช้งาน'),
                           ),
                         );
                       },
@@ -410,6 +370,10 @@ class _LoginPageState extends State<LoginPage> {
             ),
           ),
         ),
+      ),
+      bottomNavigationBar: AppBottomNavigationBar(
+        currentIndex: 3,
+        onTap: (index) => navigateToAppTab(context, index, currentIndex: 3),
       ),
     );
   }
