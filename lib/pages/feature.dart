@@ -1,13 +1,7 @@
-// ============================================================
-// feature.dart  (วางที่ lib/pages/feature.dart)
-// หน้ารายละเอียดรองเท้า: รูป, ราคา, เลือกไซส์, เพิ่มลงตะกร้า, ซื้อเลย
-// ============================================================
-
 import 'package:flutter/material.dart';
-import 'orders.dart'; // ใช้ CartAndCheckoutPage (ตะกร้า)
+import 'orders.dart';
 
 class ProductDetailPage extends StatefulWidget {
-  // ข้อมูลที่ main.dart ส่งมาตอนกดรองเท้า
   final int? productId; // id จากฐานข้อมูล (ยังไม่ได้ใช้ แต่เก็บไว้ได้)
   final String name; // ชื่อรองเท้า
   final String price; // ราคาแบบข้อความ เช่น '฿14900'
@@ -28,13 +22,11 @@ class ProductDetailPage extends StatefulWidget {
 class _ProductDetailPageState extends State<ProductDetailPage> {
   String selectedSize = '9'; // ไซส์ที่เลือกอยู่ตอนนี้
 
-  // ไซส์ทั้งหมดที่มีให้เลือก
-  final List<String> sizes = ['8', '8.5', '9', '9.5', '10'];
 
-  // ไซส์ที่หมด (กดไม่ได้)
+  final List<String> sizes = ['8', '8.5', '9', '9.5', '10'];
   final List<String> disabledSizes = ['8', '9.5'];
 
-  // รูปตัวอย่างด้านล่าง (ยังเป็นรูปตายตัวจาก Unsplash)
+  ///ใช้รูป mockup ไว้
   final List<Map<String, String>> gallery = [
     {
       'label': 'ด้านข้าง',
@@ -173,7 +165,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
-  // ---------------- ส่วนรูปภาพ ----------------
+  // ส่วนรูป
   Widget _buildImageGallery() {
     return Column(
       children: [
@@ -234,12 +226,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
-  // ---------------- ส่วนรายละเอียดสินค้า ----------------
+  // รายละเอียดสินค้า mock up test ui
   Widget _buildProductDetails() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // หัวข้อเล็ก (ยังเป็นข้อความตายตัว)
+
         const Text(
           'JORDAN / REIMAGINED COLLECTION',
           style: TextStyle(color: Colors.grey, fontSize: 12),
@@ -332,7 +324,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        // ข้อความเรื่องราว (ยังเป็นข้อความตัวอย่างตายตัว)
+
         const Text(
           'Air Jordan 1 สี Chicago เป็นหนึ่งในสีรองเท้าที่นักสะสมจดจำ '
               'รุ่น Lost & Found ถ่ายทอดกลิ่นอายวินเทจด้วยรายละเอียดที่ได้รับแรงบันดาลใจจากรองเท้ายุคเก่า',

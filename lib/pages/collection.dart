@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
 import 'orders.dart';
-
-// -------------------------------------------------------------
-// Model สำหรับรับข้อมูล API รองเท้า
-// -------------------------------------------------------------
+///สำหรับ api
 class ShoeModel {
   final String id;
   final String name;
@@ -18,7 +15,7 @@ class ShoeModel {
     required this.imageUrl,
   });
 
-  // ฟังก์ชันแปลงข้อมูลจาก JSON (API)
+  // ฟังก์ชันแปลงข้อมูลจาก API
   factory ShoeModel.fromJson(Map<String, dynamic> json) {
     return ShoeModel(
       id: (json['id'] ?? '').toString(),
@@ -32,25 +29,24 @@ class ShoeModel {
 class ShoeRackAndOrdersPage extends StatefulWidget {
   const ShoeRackAndOrdersPage({super.key});
 
-  // ===== รายการรองเท้าในคอลเลกชัน (เริ่มว่าง จะมีข้อมูลเมื่อกดยืนยันคำสั่งซื้อ) =====
+  // รายการลองเท้าใน คอลเล้กชั่น
   static final List<ShoeModel> shoeList = [];
 
-  // ===== รายการคำสั่งซื้อ (เริ่มว่าง จะมีข้อมูลเมื่อกดยืนยันคำสั่งซื้อ) =====
+  // จะมีข้อมูลตอนกดยืนยัน
   static final List<Map<String, dynamic>> orders = [];
 
-  // ตัวนับเลขคำสั่งซื้อ (ใช้สำรอง เมื่อไม่มีเลข order_id จากฐานข้อมูล)
+  // ตัวนับเลขคำสั่งซื้อ
   static int _orderCounter = 0;
 
   // ใส่ comma คั่นหลักพัน เช่น 13000 -> 13,000
   static String _fmt(int n) => n.toString().replaceAllMapped(
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
 
-  // ===== เพิ่ม: ฟังก์ชันที่หน้าตะกร้าเรียกตอนกด "ยืนยันคำสั่งซื้อ" =====
-  // items = รายการในตะกร้า, total = ยอดชำระทั้งหมด (รวมค่าจัดส่งแล้ว)
+
   static void addConfirmedOrder({
     required List<Map<String, dynamic>> items,
     required int total,
-    int? orderNumber, // เลข order_id จากฐานข้อมูล (ถ้ามี)
+    int? orderNumber, // เลข order_id จากฐานข้อมูล ใส่ไว้ก่อน ไม่มีนะอันนี้
   }) {
     if (items.isEmpty) return;
 
@@ -68,7 +64,7 @@ class ShoeRackAndOrdersPage extends StatefulWidget {
     final dd = now.day.toString().padLeft(2, '0');
     final orderId = '#RP-$yy$mm$dd-${number.toString().padLeft(3, '0')}';
 
-    // 1) เพิ่มรองเท้าเข้าคอลเลกชัน (1 การ์ดต่อ 1 คู่) ไว้บนสุด
+    // 1) เพิ่มรองเท้าเข้าคอลเลกชัน 1 การ์ดต่อ 1 คู่ ไว้บนสุด
     var pairs = 0;
     for (final item in items) {
       final qty = (item['quantity'] as int?) ?? 1;
@@ -86,7 +82,7 @@ class ShoeRackAndOrdersPage extends StatefulWidget {
       }
     }
 
-    // 2) เพิ่มคำสั่งซื้อเข้ารายการคำสั่งซื้อ (สถานะ Pending) ไว้บนสุด
+    // เพิ่มคำสั่งซื้อเข้ารายการคำสั่งซื้อ (สถานะ Pending) ไว้บนสุด
     final first = items.first;
     final name = items.length == 1
         ? first['name'].toString()
@@ -285,7 +281,7 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
     );
   }
 
-  // 2. หัวข้อคอลเลกชัน
+  //  หัวข้อคอลเลกชัน
   Widget _buildCollectionHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -305,7 +301,7 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
     );
   }
 
-  // 3. Grid แสดงรองเท้า
+  // Grid แสดงรองเท้า
   Widget _buildShoeGrid({required int crossAxisCount}) {
     // ยังไม่มีรองเท้า = โชว์ข้อความว่าง
     if (shoeListFromApi.isEmpty) {
@@ -418,9 +414,9 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
     );
   }
 
-  // 4. หัวข้อคำสั่งซื้อและการจัดส่ง
+  //  หัวข้อคำสั่งซื้อและการจัดส่ง
   Widget _buildOrdersHeader() {
-    // เพิ่ม: นับจำนวนตามรายการจริง แทนตัวเลขที่เคยเขียนตายตัว
+    // นับจำนวนตามรายการจริง แทนตัวเลขที่เคยเขียนตายตัว
     final done = ordersList.where((o) => o['status'] == 'Delivered').length;
     final active = ordersList.length - done;
 
@@ -451,7 +447,7 @@ class _ShoeRackAndOrdersPageState extends State<ShoeRackAndOrdersPage> {
 
   // 5. รายการคำสั่งซื้อ
   Widget _buildOrdersList() {
-    // ยังไม่มีคำสั่งซื้อ = โชว์ข้อความว่าง
+
     if (ordersList.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 32),

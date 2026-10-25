@@ -1,23 +1,17 @@
-// ============================================================
-// main.dart  (วางที่ lib/main.dart)
-// หน้าแรกของแอป: ค้นหา, hero card, grid รองเท้า, story card, แถบเมนูล่าง
-// ============================================================
-
-import 'dart:convert'; // ใช้ jsonDecode / utf8 แปลงข้อมูลจาก API
-import 'package:flutter/material.dart'; // widget พื้นฐานของ Flutter
-import 'package:http/http.dart' as http; // ใช้ยิง request ไปที่ FastAPI
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'pages/login.dart'; // หน้า Login
 import 'pages/profile.dart'; // หน้าโปรไฟล์ (ตอนนี้ยังไม่ได้ใช้ในไฟล์นี้)
 import 'pages/orders.dart'; // หน้าตะกร้า (CartAndCheckoutPage)
-import 'pages/feature.dart'; // หน้ารายละเอียดสินค้า (ProductDetailPage)
-import 'pages/collection.dart'; // หน้าคอลเลกชัน (ShoeRackAndOrdersPage)
+import 'pages/feature.dart'; // หน้ารายละเอียดสินค้า
+import 'pages/collection.dart'; // หน้าคอลเลกชัน
 
-// ที่อยู่ของ API (Android emulator ให้เปลี่ยนเป็น http://10.0.2.2:8000)
+
 const String kApiBaseUrl = 'http://127.0.0.1:8000';
-// path ที่ใช้ดึงรายการรองเท้า
 const String kProductsPath = '/products';
 
-// ---------------- สีทั้งหมดของแอป ----------------
+// สีแอป
 class AppColors {
   static const bg = Color(0xFF0B0B0B); // พื้นหลังหลัก (ดำ)
   static const surface = Color(0xFF1D1D1D); // พื้นการ์ด
@@ -32,52 +26,44 @@ class AppColors {
   static const placeholderActive = Color(0xFFFF5500); // สี hint ตอนโฟกัส
 }
 
-// ---------------- โมเดลข้อมูลรองเท้า ----------------
+// ข้อมูลรองเท้า
 class Shoe {
   final int? id; // id จากฐานข้อมูล
   final String name; // ชื่อรองเท้า
-  final String? price; // ราคา (เก็บเป็นข้อความ เช่น '฿14900')
+  final String? price; // ราคา
   final String? imageUrl; // ลิงก์รูป
 
   // ลำดับ: ชื่อ, ราคา, รูป, id (ตัวที่ 2-4 ใส่หรือไม่ใส่ก็ได้)
   const Shoe(this.name, [this.price, this.imageUrl, this.id]);
 }
 
-// ---------------- ตัวดึงข้อมูลจาก API ----------------
+// api
 class ShoeApi {
-  // ชื่อ key ที่เป็นไปได้ของ "ชื่อรองเท้า" ใน JSON (ลองไล่ทีละตัว)
   static const _nameKeys = ['name', 'product_name', 'shoe_name', 'title'];
 
   static Future<List<Shoe>> fetchAll() async {
-    // สร้าง URL เต็ม เช่น http://127.0.0.1:8000/products
     final uri = Uri.parse('$kApiBaseUrl$kProductsPath');
-    // ยิง GET และรอไม่เกิน 10 วินาที
     final res = await http.get(uri).timeout(const Duration(seconds: 10));
 
-    // ถ้าเซิร์ฟเวอร์ตอบไม่ใช่ 200 ให้โยน error
     if (res.statusCode != 200) {
       throw Exception('Server error ${res.statusCode}');
     }
 
-    // แปลง bytes เป็น UTF-8 (กันภาษาไทยเพี้ยน) แล้วแปลงเป็น JSON
     dynamic body = jsonDecode(utf8.decode(res.bodyBytes));
 
-    // ถ้า JSON เป็น Map ให้ดึง list ออกมาจาก key ที่พบบ่อย
     if (body is Map) {
       body = body['data'] ?? body['products'] ?? body['results'] ?? [];
     }
-
-    // ถ้าไม่ใช่ list ก็ไม่มีข้อมูลให้ใช้
     if (body is! List) return [];
 
     final shoes = <Shoe>[];
 
     for (final item in body) {
       if (item is String) {
-        // กรณี API ส่งมาเป็นรายชื่ออย่างเดียว
+
         shoes.add(Shoe(item));
       } else if (item is Map) {
-        // หาชื่อรองเท้าจาก key ที่เป็นไปได้
+
         String? name;
         for (final k in _nameKeys) {
           if (item[k] != null) {
@@ -96,12 +82,12 @@ class ShoeApi {
             ? raw.toString()
             : null;
 
-        // อ่าน id (รองรับทั้งตัวเลขและข้อความ)
+
         final id = item['id'] is int
             ? item['id'] as int
             : int.tryParse('${item['id']}');
 
-        // เพิ่มรองเท้าเข้า list (ราคาใส่ ฿ นำหน้า)
+
         shoes.add(Shoe(name, p == null ? null : '฿$p', img, id));
       }
     }
@@ -110,7 +96,7 @@ class ShoeApi {
   }
 }
 
-// ---------------- จุดเริ่มต้นของแอป ----------------
+/// start app
 void main() => runApp(const RarePairApp());
 
 class RarePairApp extends StatelessWidget {
@@ -130,14 +116,14 @@ class RarePairApp extends StatelessWidget {
           surface: AppColors.bg,
         ),
       ),
-      home: const HomePage(), // หน้าแรก
+      home: const HomePage(),
     );
   }
 }
 
-// ---------------- หน้าแรก ----------------
+// homepage
 class HomePage extends StatefulWidget {
-  final int? userId; // id ผู้ใช้ (ส่งมาจากหน้า login ถ้ามี)
+  final int? userId;
 
   const HomePage({
     super.key,
@@ -149,17 +135,17 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final _controller = TextEditingController(); // ควบคุมข้อความในช่องค้นหา
-  final _focus = FocusNode(); // ตรวจว่าช่องค้นหาถูกโฟกัสอยู่ไหม
+  final _controller = TextEditingController();
+  final _focus = FocusNode();
 
   List<Shoe> _all = []; // รองเท้าทั้งหมดจาก /products
   List<Shoe> _results = []; // ผลลัพธ์หลังกรองด้วยคำค้น
-  bool _loading = false; // กำลังโหลดข้อมูลอยู่ไหม
-  String? _error; // ข้อความ error (null = ไม่มี)
-  int _selectedChip = 0; // chip ที่ถูกเลือก
-  int _navIndex = 0; // แท็บล่างที่ถูกเลือก
+  bool _loading = false;
+  String? _error;
+  int _selectedChip = 0;
+  int _navIndex = 0;
 
-  // ข้อความของ chip ด้านบน
+
   static const _chips = [
     'ทั้งหมด',
     'Vintage',
@@ -171,8 +157,6 @@ class _HomePageState extends State<HomePage> {
   bool get _searching => _controller.text.trim().isNotEmpty;
 
   // รองเท้าที่โชว์ใน hero card ใหญ่
-  // เปลี่ยนเลข 6 (ทั้ง 2 ที่) เพื่อเลือกคู่อื่น: 0 = คู่แรก, 1 = คู่ที่สอง, ...
-  // ถ้ามีรองเท้าไม่พอ จะใช้คู่แรกแทน
   Shoe? get _heroShoe {
     if (_all.isEmpty) return null;
     return _all.length > 6 ? _all[6] : _all.first;
@@ -181,17 +165,16 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    // เก็บ id ผู้ใช้ที่ล็อกอิน ไว้ให้หน้าตะกร้าใช้ตอนบันทึกคำสั่งซื้อ
+
     if (widget.userId != null) {
       CartAndCheckoutPage.currentUserId = widget.userId;
     }
     _focus.addListener(() => setState(() {})); // โฟกัสเปลี่ยน = วาดหน้าใหม่
-    _loadAll(); // โหลดรองเท้าตอนเปิดหน้า
+    _loadAll();
   }
 
   @override
   void dispose() {
-    // คืนทรัพยากรตอนปิดหน้า
     _controller.dispose();
     _focus.dispose();
     super.dispose();
@@ -207,7 +190,7 @@ class _HomePageState extends State<HomePage> {
     try {
       final data = await ShoeApi.fetchAll();
 
-      // พิมพ์รายการใน Debug Console พร้อมเลขลำดับ (ใช้ดูว่าเลขไหนคือคู่ไหน)
+
       for (var i = 0; i < data.length; i++) {
         final shoe = data[i];
         debugPrint(
@@ -325,7 +308,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ---------------- แถบหัวข้อด้านบน ----------------
+  // บนสุด
   Widget _header() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
@@ -379,7 +362,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ---------------- ช่องค้นหา ----------------
+  // ค้นหา
   Widget _searchBar() {
     final focused = _focus.hasFocus; // ตอนนี้โฟกัสอยู่ไหม
 
@@ -470,9 +453,9 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ---------------- แผงผลการค้นหา ----------------
+  // ผลค้นหา
   Widget _resultsPanel() {
-    // กำลังโหลดและยังไม่มีผล: โชว์วงกลมหมุน
+    /// error state
     if (_loading && _results.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 48),
@@ -567,7 +550,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // แถวผลลัพธ์ 1 แถว (รูปเล็ก + ชื่อ + ราคา)
+  // แถวผลลัพธ์ 1 แถว
   Widget _resultTile(Shoe shoe, String query) {
     return InkWell(
       // กดแล้วเก็บคีย์บอร์ดและเปิดหน้ารายละเอียด
@@ -664,7 +647,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ---------------- แถว chip ด้านบน ----------------
+  // แถว ชิปด้านบน ติ๊กถูก
   Widget _chipRow() {
     return Wrap(
       spacing: 8,
@@ -710,7 +693,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ---------------- widget แสดงรูปรองเท้า (ใช้ซ้ำทุกการ์ด) ----------------
+  // แสดงรองเท้า ใช้ซ้ำทุกการ์ด
   // ไม่มีลิงก์หรือโหลดรูปไม่ได้ จะโชว์ไอคอนคนวิ่งแทน
   Widget _shoeImage(
       String? url, {
@@ -742,7 +725,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ---------------- hero card ใหญ่ ----------------
+  // การ์ฺดแรกของเว้บ
   Widget _heroCard() {
     final shoe = _heroShoe; // รองเท้าที่เลือกไว้ใน getter _heroShoe
 
@@ -848,7 +831,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ---------------- หัวข้อของแต่ละส่วน ----------------
+  // หัวข้อแต่ละส่วน
   Widget _sectionTitle(String title, String action) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -877,12 +860,9 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ---------------- ตารางรองเท้า 2 คอลัมน์ ----------------
+  // ตารางรองเท้า เลือกได้ให้แสดงเท่าไหร่
   Widget _shoeGrid() {
-    // ข้ามคู่แรก 1 คู่ แล้วเอามาโชว์ 10 คู่ (เปลี่ยน skip/take ได้)
     final shoes = _all.skip(1).take(10).toList();
-
-    // ยังไม่มีข้อมูล: โชว์ข้อความกำลังโหลด
     if (shoes.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 24),
@@ -969,11 +949,11 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ---------------- story card (การ์ดเรื่องราว) ----------------
+  // story card bottom web
   Widget _storyCard() {
-    // ใช้คู่ที่ 6 (index 5) ถ้ามี ไม่งั้นใช้คู่แรก ถ้าไม่มีเลยเป็น null
-    final shoe = _all.length > 5
-        ? _all[5]
+
+    final shoe = _all.length > 10
+        ? _all[10]
         : (_all.isNotEmpty ? _all.first : null);
 
     return InkWell(

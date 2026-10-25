@@ -45,7 +45,7 @@ class CartAndCheckoutPage extends StatefulWidget {
   // เพิ่ม: ตัวนับ id ให้สินค้าแต่ละรายการ (ใช้ตอนกดลบ)
   static int _nextId = 1;
 
-  // ===== เพิ่ม: ฟังก์ชันที่หน้า feature.dart เรียกตอนกด "เพิ่มลงตะกร้า" / "ซื้อเลย" =====
+  //  ฟังก์ชันที่หน้า feature.dart เรียกตอนกด "เพิ่มลงตะกร้า" / "ซื้อเลย" =====
   static void addProduct(Map<String, dynamic> product) {
     // แปลงไซส์ให้ตรงกับ dropdown ในหน้านี้ เช่น '9' -> 'US 9'
     final rawSize = (product['size'] ?? '9').toString();
@@ -61,7 +61,7 @@ class CartAndCheckoutPage extends StatefulWidget {
           (cartItems[index]['quantity'] as int) +
               ((product['quantity'] ?? 1) as int);
     } else {
-      // ถ้ายังไม่มี ให้เพิ่มเป็นรายการใหม่ (ใส่ field ที่หน้านี้ต้องใช้ให้ครบ)
+      // ถ้ายังไม่มี ให้เพิ่มเป็นรายการใหม่
       cartItems.add({
         'id': _nextId++,
         'product_id': product['product_id'], // id ในตาราง products
@@ -80,7 +80,7 @@ class CartAndCheckoutPage extends StatefulWidget {
 }
 
 class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
-  // เพิ่ม: ทางลัดเรียกรายการตะกร้า (โค้ดเดิมด้านล่างใช้ชื่อ cartItems ได้เหมือนเดิม)
+
   List<Map<String, dynamic>> get cartItems => CartAndCheckoutPage.cartItems;
 
   bool _submitting = false; // เพิ่ม: กันกดยืนยันซ้ำระหว่างรอเซิร์ฟเวอร์
