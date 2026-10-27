@@ -434,6 +434,8 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
   Future<void> _confirmOrder() async {
     if (_submitting) return;
 
+
+
     if (cartItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('กรุณาเพิ่มสินค้าลงตะกร้าก่อน')),
@@ -472,10 +474,22 @@ class _CartAndCheckoutPageState extends State<CartAndCheckoutPage> {
           .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes));
+
+      debugPrint('ORDER STATUS: ${response.statusCode}');
+      debugPrint('ORDER RESPONSE: ${response.body}');
+
       if (response.statusCode == 200 && data['success'] == true) {
-        orderId = (data['order_id'] as num?)?.toInt();
+        orderId = int.tryParse(data['order_id'].toString());
+
+        if (orderId != null) {
+          ShoeRackAndOrdersPage.addConfirmedPairs(items);
+        } else {
+          warning = 'บันทึกได้ แต่ไม่พบ order_id ในผลตอบกลับ';
+        }
       } else {
-        warning = data['detail']?.toString() ?? 'บันทึกคำสั่งซื้อไม่สำเร็จ';
+        warning = data['detail']?.toString() ??
+            data['message']?.toString() ??
+            'บันทึกคำสั่งซื้อไม่สำเร็จ';
       }
     } catch (e) {
       debugPrint('CONFIRM ORDER ERROR: $e');

@@ -39,6 +39,19 @@ class ShoeRackAndOrdersPage extends StatefulWidget {
 
   // ตัวนับเลขคำสั่งซื้อ
   static int _orderCounter = 0;
+  // จำนวนคู่ที่สะสมจากออเดอร์ที่ยืนยันแล้ว
+  static int confirmedPairCount = 0;
+
+// เพิ่มจำนวนคู่จากรายการที่ยืนยันแล้ว
+  static void addConfirmedPairs(
+      List<Map<String, dynamic>> items,
+      ) {
+    confirmedPairCount += items.fold<int>(
+      0,
+          (sum, item) =>
+      sum + ((item['quantity'] as num?)?.toInt() ?? 1),
+    );
+  }
 
   // ใส่ comma คั่นหลักพัน เช่น 13000 -> 13,000
   static String _fmt(int n) => n.toString().replaceAllMapped(

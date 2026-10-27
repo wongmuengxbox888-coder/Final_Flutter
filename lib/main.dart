@@ -8,7 +8,7 @@ import 'pages/feature.dart'; // หน้ารายละเอียดสิ
 import 'pages/collection.dart'; // หน้าคอลเลกชัน
 import 'widgets/app_bottom_navigation_bar.dart';
 
-const String kApiBaseUrl = 'http://127.0.0.1:8000';
+const String kApiBaseUrl = 'http://127.0.0.1:8000'; ///เรียกจาก พอร์ต python
 const String kProductsPath = '/products';
 
 // สีแอป
@@ -181,7 +181,7 @@ class _HomePageState extends State<HomePage> {
     return _all.length > 6 ? _all[6] : _all.first;
   }
 
-  @override
+  @override  ///api load homepage
   void initState() {
     super.initState();
 
@@ -207,7 +207,7 @@ class _HomePageState extends State<HomePage> {
     });
 
     try {
-      final data = await ShoeApi.fetchAll();
+      final data = await ShoeApi.fetchAll(); ///เรียก api มาเก้บใต้นี้ _all
 
       for (var i = 0; i < data.length; i++) {
         final shoe = data[i];

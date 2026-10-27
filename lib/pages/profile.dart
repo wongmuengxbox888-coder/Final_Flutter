@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../main.dart';
 import 'orders.dart';
 import '../widgets/app_bottom_navigation_bar.dart';
+import 'collection.dart';
 
 const apiUrl = 'http://127.0.0.1:8000';
 
@@ -156,7 +157,11 @@ class _ProfilePageState extends State<ProfilePage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _stat('6', 'คู่ที่สะสม'),
+
+                          _stat(
+                            '${ShoeRackAndOrdersPage.confirmedPairCount}',
+                            'คู่ที่สะสม',
+                          ),
                           _stat('2', 'Collector Badges'),
                           _stat('2', 'Wishlist'),
                         ],
