@@ -34,7 +34,7 @@ samples, guidance on mobile development, and a full API reference.
 
 ## ⚙️ ส่วนที่ 1: การติดตั้งและรัน Backend (FastAPI Server)
 
-ระบบหลังบ้านใช้ **FastAPI** ร่วมกับ **PyMySQL** ในการรับส่งข้อมูลผ่าน RESTful API[cite: 1, 4] โดยสามารถเลือกวิธีการรันได้ 2 รูปแบบดังนี้:
+ระบบหลังบ้านใช้ **FastAPI** ร่วมกับ **PyMySQL** ในการรับส่งข้อมูลผ่าน RESTful API โดยสามารถเลือกวิธีการรันได้ 2 รูปแบบดังนี้:
 
 ### วิธีที่ 1: รันด้วย Docker Compose (แนะนำ) 🐳
 
