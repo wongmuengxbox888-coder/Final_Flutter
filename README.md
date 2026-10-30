@@ -46,13 +46,13 @@ samples, guidance on mobile development, and a full API reference.
    * ตรวจสอบไฟล์ `.env` หรือ `edit.env` โดยกำหนดรหัสผ่านฐานข้อมูลดังนี้:
      ```env
      DB_PASSWORD=root123
-     ```[cite: 6]
+     ```
 
 3. **สั่งรันบริการ:**
    เปิด Terminal ในโฟลเดอร์หลักที่มีไฟล์ `compose.yaml` แล้วใช้คำสั่ง:
    ```bash
    docker compose up -d --build
-   ```[cite: 5]
+   ```
 
 > 📌 **หมายเหตุ:** Container จะ Build ภาพจาก `Dockerfile` และ Map Port จากภายใน `80` มายัง Port `8000` ของเครื่อง Host
 > * **API Service URL:** `http://localhost:8000`
@@ -74,7 +74,7 @@ samples, guidance on mobile development, and a full API reference.
 
    # สั่งรัน Uvicorn บน Port 8000
    uvicorn main:app --reload --host 0.0.0.0 --port 8000
-   ```[cite: 1, 4]
+   ```
 
 ---
 
@@ -87,12 +87,12 @@ samples, guidance on mobile development, and a full API reference.
    เปิด Terminal ในโฟลเดอร์โปรเจกต์ Flutter แล้วสั่งรัน:
    ```bash
    flutter pub get
-   ```[cite: 7]
+   ```
 
 3. **สั่งรันแอปพลิเคชัน:**
    ```bash
    flutter run
-   ```[cite: 2]
+   ```
 
 ---
 
