@@ -26,9 +26,9 @@ samples, guidance on mobile development, and a full API reference.
 
 ## 🛠️ เทคโนโลยีที่ใช้ (Tech Stack)
 
-* **Backend:** Python 3.12, FastAPI, PyMySQL, Uvicorn, Docker & Docker Compose[cite: 1, 4, 5]
-* **Database:** MySQL Server (Database Name: `Final_project_304_499`)[cite: 1, 5]
-* **Frontend:** Flutter (Dart SDK `^3.12.2`), Package `http` (^1.6.0)[cite: 2, 7]
+* **Backend:** Python 3.12, FastAPI, PyMySQL, Uvicorn, Docker & Docker Compose
+* **Database:** MySQL Server (Database Name: `Final_project_304_499`)
+* **Frontend:** Flutter (Dart SDK `^3.12.2`), Package `http` (^1.6.0)
 
 ---
 
@@ -40,22 +40,22 @@ samples, guidance on mobile development, and a full API reference.
 
 1. **ตรวจสอบความพร้อมของ Docker:**
    * ติดตั้งและเปิดใช้งาน **Docker Desktop**
-   * ตรวจสอบว่ามี Docker Network ชื่อ `mysql-db_default` สอดคล้องตามไฟล์ `compose.yaml`[cite: 5]
+   * ตรวจสอบว่ามี Docker Network ชื่อ `mysql-db_default` สอดคล้องตามไฟล์ `compose.yaml`
 
 2. **เตรียมไฟล์ Environment:**
-   * ตรวจสอบไฟล์ `.env` หรือ `edit.env` โดยกำหนดรหัสผ่านฐานข้อมูลดังนี้[cite: 5, 6]:
+   * ตรวจสอบไฟล์ `.env` หรือ `edit.env` โดยกำหนดรหัสผ่านฐานข้อมูลดังนี้:
      ```env
      DB_PASSWORD=root123
      ```[cite: 6]
 
 3. **สั่งรันบริการ:**
-   เปิด Terminal ในโฟลเดอร์หลักที่มีไฟล์ `compose.yaml` แล้วใช้คำสั่ง[cite: 5]:
+   เปิด Terminal ในโฟลเดอร์หลักที่มีไฟล์ `compose.yaml` แล้วใช้คำสั่ง:
    ```bash
    docker compose up -d --build
    ```[cite: 5]
 
-> 📌 **หมายเหตุ:** Container จะ Build ภาพจาก `Dockerfile`[cite: 4] และ Map Port จากภายใน `80` มายัง Port `8000` ของเครื่อง Host[cite: 5]
-> * **API Service URL:** `http://localhost:8000`[cite: 5]
+> 📌 **หมายเหตุ:** Container จะ Build ภาพจาก `Dockerfile` และ Map Port จากภายใน `80` มายัง Port `8000` ของเครื่อง Host
+> * **API Service URL:** `http://localhost:8000`
 > * **Swagger UI Documentation:** `http://localhost:8000/docs`
 
 ---
@@ -63,11 +63,11 @@ samples, guidance on mobile development, and a full API reference.
 ### วิธีที่ 2: รันแบบ Manual (ไม่ใช้ Docker) 💻
 
 1. **ตั้งค่าฐานข้อมูล MySQL:**
-   * สร้าง Database ชื่อ `Final_project_304_499`[cite: 1, 5]
-   * ตรวจสอบความถูกต้องของ Username (`root`) และ Password (`root123`)[cite: 1, 6]
+   * สร้าง Database ชื่อ `Final_project_304_499`
+   * ตรวจสอบความถูกต้องของ Username (`root`) และ Password (`root123`)
 
 2. **ติดตั้ง Dependencies และสั่งรัน API Server:**
-   เปิด Terminal เข้าไปยังโฟลเดอร์ `my_api` แล้วรันคำสั่ง[cite: 1, 4]:
+   เปิด Terminal เข้าไปยังโฟลเดอร์ `my_api` แล้วรันคำสั่ง:
    ```bash
    # ติดตั้ง Packages ที่จำเป็น
    pip install fastapi "uvicorn[standard]" pymysql pydantic
@@ -81,10 +81,10 @@ samples, guidance on mobile development, and a full API reference.
 ## 📱 ส่วนที่ 2: การติดตั้งและรัน Frontend (Flutter App)
 
 1. **เปิดโครงการใน Flutter Environment:**
-   เปิดโฟลเดอร์ `Final_Flutter` (โปรเจกต์ `final_flutter_project`) บน VS Code หรือ Android Studio[cite: 2, 7]
+   เปิดโฟลเดอร์ `Final_Flutter` (โปรเจกต์ `final_flutter_project`) บน VS Code หรือ Android Studio
 
 2. **ติดตั้ง Packages:**
-   เปิด Terminal ในโฟลเดอร์โปรเจกต์ Flutter แล้วสั่งรัน[cite: 2, 7]:
+   เปิด Terminal ในโฟลเดอร์โปรเจกต์ Flutter แล้วสั่งรัน:
    ```bash
    flutter pub get
    ```[cite: 7]
@@ -98,8 +98,8 @@ samples, guidance on mobile development, and a full API reference.
 
 ## 🌐 การกำหนด Base URL เชื่อมต่อ API ใน Flutter
 
-เนื่องจากระบบใช้ Base URL คือ **`http://127.0.0.1:8000`**[cite: 1, 5] การตั้งค่า URL ภายในโค้ด Flutter (`http` package)[cite: 7] ควรพิจารณาตามอุปกรณ์ที่ใช้รันดังนี้:
+เนื่องจากระบบใช้ Base URL คือ **`http://127.0.0.1:8000`** การตั้งค่า URL ภายในโค้ด Flutter (`http` package) ควรพิจารณาตามอุปกรณ์ที่ใช้รันดังนี้:
 
-* **รันบน Web Browser (Chrome) / Desktop App:**[cite: 2]
+* **รันบน Web Browser (Chrome) / Desktop App:**
   ```dart
   static const String baseUrl = '[http://127.0.0.1:8000](http://127.0.0.1:8000)';
