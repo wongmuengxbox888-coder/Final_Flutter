@@ -19,6 +19,7 @@ samples, guidance on mobile development, and a full API reference.
 # 📱 Final Project - E-Commerce App & API
 
 **GitHub Repository:** https://github.com/wongmuengxbox888-coder/Final_project_flutanddb.git
+**File SQL:** https://drive.google.com/drive/folders/1XfiLH-Rk9lLIkrRV5Oey4cWJmTBa8w66?usp=drive_link
 
 เอกสารประกอบการจัดทำโปรเจกต์รายวิชา อธิบายโครงสร้างและการติดตั้งเพื่อเริ่มใช้งานระบบทั้งหมด ทั้งฝั่ง **Backend API (FastAPI + Docker)** และ **Frontend App (Flutter)**
 
